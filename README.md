@@ -1,4 +1,33 @@
-# React + TypeScript + Vite
+# Infotainment Scene Builder
+
+A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run dev`, then open the local URL printed by Vite. The home page is at `/`, the editor at `/editor`, and account forms at `/login`.
+
+## Designing a cockpit
+
+- Add navigation maps, media players, rotary volume knobs, climate controls, and action buttons from the component library.
+- Select a component on the canvas or in the layers list. Drag to arrange with 8 px snapping; drag corner handles to scale proportionally or side handles to stretch width/height. Resizing stays within the canvas with a minimum size of 80 × 48 px, updates inspector dimensions on release, and creates one undoable change per gesture. Edit labels, positions, dimensions, and values in the inspector.
+- Duplicate, delete, or move components forward/backward in the layer stack. Undo/redo retains up to 50 changes.
+- Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, and enable drive mode. These controls are visual simulations: the vector map is offline, and the media player does not play audio.
+- Scenes save automatically in this browser's local storage when available. **Export JSON** downloads scene dimensions, component properties, and schema version. There is no JSON import or cloud scene synchronization yet.
+- **Restore starter scene** replaces the current layout after confirmation; this action can be undone.
+
+### Keyboard shortcuts
+
+| Action | Shortcut |
+| --- | --- |
+| Undo | ⌘/Ctrl Z |
+| Redo | ⌘/Ctrl Shift Z |
+| Duplicate selection | ⌘/Ctrl D |
+| Delete selection | Delete / Backspace |
+| Nudge selection | Arrow keys |
+| Nudge by 8 px | Shift + Arrow keys |
+| Exit preview / deselect | Escape |
+
+## Development
+
+`npm run build` checks TypeScript and produces the production bundle. `npm run lint` runs Oxlint. Production hosting must serve `index.html` for `/editor` and `/login` routes.
+
+## Template notes: React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

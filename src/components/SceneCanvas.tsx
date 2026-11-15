@@ -1,112 +1,171 @@
-import { Fragment } from "react";
-import { Group, Layer, Rect, Stage, Text } from "react-konva";
-
-import type { SceneElement } from "../types/scene";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Circle, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
+import type { Group as KonvaGroup } from "konva/lib/Group";
+import type { Transformer as KonvaTransformer } from "konva/lib/shapes/Transformer";
+import type { KonvaEventObject } from "konva/lib/Node";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, type SceneElement } from "../types/scene";
+import { SceneWidget } from "./SceneWidgets";
 
 type SceneCanvasProps = {
   elements: SceneElement[];
   selectedId: string;
   onSelect: (id: string) => void;
   onMove: (id: string, x: number, y: number) => void;
+  onUpdate: (id: string, patch: Partial<SceneElement>) => void;
+  preview: boolean;
 };
 
-const CANVAS_WIDTH = 820;
-const CANVAS_HEIGHT = 560;
+const font = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
+const clamp = (value: number, max: number) => Math.max(0, Math.min(Math.max(0, max), value));
+// Keeping the upper bound on the grid prevents a last-pixel jump after a bounded drag.
+const snap = (value: number, max: number) => clamp(Math.round(value / 8) * 8, Math.floor(Math.max(0, max) / 8) * 8);
 
-export function SceneCanvas({
-  elements,
-  selectedId,
-  onSelect,
-  onMove,
-}: SceneCanvasProps) {
-  function clearSelection(event: any) {
-    if (event.target === event.target.getStage()) {
-      onSelect("");
-    }
+export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, preview }: SceneCanvasProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const elementRefs = useRef(new Map<string, KonvaGroup>());
+  const transformerRef = useRef<KonvaTransformer>(null);
+  const [availableWidth, setAvailableWidth] = useState(CANVAS_WIDTH + 18);
+  const scale = Math.max(0.001, Math.min(1, (availableWidth - 18) / CANVAS_WIDTH));
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setAvailableWidth(entry.contentRect.width);
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const transformer = transformerRef.current;
+    if (!transformer) return;
+    const node = !preview ? elementRefs.current.get(selectedId) : undefined;
+    transformer.nodes(node ? [node] : []);
+    transformer.forceUpdate();
+  }, [selectedId, elements, preview, scale]);
+
+  function finishResize(element: SceneElement, node: KonvaGroup) {
+    const width = Math.max(80, Math.min(CANVAS_WIDTH, Math.round(element.width * node.scaleX())));
+    const height = Math.max(48, Math.min(CANVAS_HEIGHT, Math.round(element.height * node.scaleY())));
+    const x = clamp(Math.round(node.x()), CANVAS_WIDTH - width);
+    const y = clamp(Math.round(node.y()), CANVAS_HEIGHT - height);
+    // Store real dimensions rather than accumulated Konva scale, keeping the inspector and export consistent.
+    node.scale({ x: 1, y: 1 });
+    node.position({ x, y });
+    onUpdate(element.id, { x, y, width, height });
+  }
+
+  function clearSelection(event: KonvaEventObject<MouseEvent | TouchEvent>) {
+    if (!preview && event.target === event.target.getStage()) onSelect("");
+  }
+
+  function cursor(event: KonvaEventObject<MouseEvent>, value: string) {
+    const container = event.target.getStage()?.container();
+    if (container) container.style.cursor = value;
   }
 
   return (
-    <section className="canvas-panel">
-      <div className="scene-toolbar">
+    <section className={`canvas-panel${preview ? " is-preview" : " is-editing"}`} style={{ minWidth: 0 }} aria-label="Infotainment scene canvas">
+      <div className="scene-toolbar" style={{ maxWidth: CANVAS_WIDTH }}>
         <div>
-          <p className="eyebrow">Current scene</p>
-          <h2>Home</h2>
+          <p className="eyebrow">Live workspace</p>
+          <h2>Infotainment display <span className="scene-mode-badge" style={{ marginLeft: 10, color: preview ? "#78dbbb" : "#85b2ff", fontSize: 10, fontWeight: 500 }}>{preview ? "● PREVIEW" : "● EDIT MODE"}</span></h2>
         </div>
-
-        <span className="canvas-size">
-          {CANVAS_WIDTH} × {CANVAS_HEIGHT}
-        </span>
+        <span className="canvas-size">{CANVAS_WIDTH} × {CANVAS_HEIGHT} <span className="canvas-zoom" style={{ marginLeft: 12 }}>{Math.round(scale * 100)}%</span></span>
       </div>
 
-      <div className="canvas-wrap">
-        <Stage
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          onMouseDown={clearSelection}
-        >
-          <Layer>
-            <Rect
-              width={CANVAS_WIDTH}
-              height={CANVAS_HEIGHT}
-              fill="#111827"
-              cornerRadius={4}
-            />
+      <div className="canvas-viewport" ref={containerRef} style={{ width: "100%", maxWidth: CANVAS_WIDTH + 18, margin: "0 auto" }}>
+        <div className="canvas-wrap" style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: "#080f1d", boxShadow: "0 24px 70px #00000035" }}>
+          <Stage width={CANVAS_WIDTH * scale} height={CANVAS_HEIGHT * scale}
+            scaleX={scale} scaleY={scale}
+            onMouseDown={clearSelection} onTouchStart={clearSelection}>
+            <Layer>
+              <Group listening={false}>
+                <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} cornerRadius={12}
+                  fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 850, y: 620 }}
+                  fillLinearGradientColorStops={[0, "#13233b", 0.55, "#0b1628", 1, "#080f1e"]} />
+                <Circle x={780} y={240} radius={300} fillRadialGradientStartRadius={0} fillRadialGradientEndRadius={300}
+                  fillRadialGradientColorStops={[0, "#24509a18", 1, "#24509a00"]} />
+                <Text x={30} y={23} text="A U R A" fontFamily={font} fontSize={13} fontStyle="bold" fill="#d6e6ff" />
+                <Line points={[113, 22, 113, 38]} stroke="#35445d" />
+                <Text x={129} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill="#7d91af" />
+                <Circle x={750} y={30} radius={3} fill="#78dbbb" />
+                <Text x={762} y={25} text="CONNECTED" fontFamily={font} fontSize={8} fill="#92a6c1" />
+                <Text x={860} y={23} text="22°  ☀" fontFamily={font} fontSize={12} fill="#b4c4da" />
+                <Text x={932} y={23} text="09:41" fontFamily={font} fontSize={13} fontStyle="bold" fill="#e7efff" />
+                <Line points={[28, 52, 972, 52]} stroke="#25344d" strokeWidth={1} />
+                <Text x={30} y={76} text="Good morning, Alex" fontFamily={font} fontSize={26} fontStyle="bold" fill="#eef4ff" />
+                <Text x={31} y={112} text="A little more connected. A little further ahead." fontFamily={font} fontSize={11} fill="#8194b2" />
+                <Line points={[28, 572, 972, 572]} stroke="#25344d" />
+                <Rect x={30} y={584} width={76} height={26} cornerRadius={8} fill="#223b61" />
+                <Text x={30} y={592} width={76} align="center" text="⌂  Home" fontFamily={font} fontSize={10} fill="#9dc3ff" />
+                <Text x={131} y={592} text="◇  Navigate" fontFamily={font} fontSize={10} fill="#7186a6" />
+                <Text x={244} y={592} text="♫  Media" fontFamily={font} fontSize={10} fill="#7186a6" />
+                <Text x={340} y={592} text="✣  Climate" fontFamily={font} fontSize={10} fill="#7186a6" />
+                <Text x={811} y={592} width={160} align="right" text="P  ·  All systems ready" fontFamily={font} fontSize={10} fill="#7186a6" />
+              </Group>
 
-            <Text
-              x={28}
-              y={24}
-              text="Home"
-              fontSize={18}
-              fontFamily="Inter, sans-serif"
-              fill="#94a3b8"
-            />
+              {elements.map((element) => {
+                return <Group key={element.id}
+                  ref={(node) => { if (node) elementRefs.current.set(element.id, node); else elementRefs.current.delete(element.id); }}
+                  x={element.x} y={element.y} width={element.width} height={element.height} draggable={!preview}
+                  onTransformEnd={() => {
+                    const node = elementRefs.current.get(element.id);
+                    if (node) finishResize(element, node);
+                  }}
+                  onClick={() => { if (!preview) onSelect(element.id); }}
+                  onTap={() => { if (!preview) onSelect(element.id); }}
+                  onMouseEnter={(event) => cursor(event, preview ? (element.type === "map" ? "default" : "pointer") : "grab")}
+                  onMouseLeave={(event) => cursor(event, "default")}
+                  onDragStart={() => onSelect(element.id)}
+                  onDragMove={(event) => {
+                    const node = event.currentTarget;
+                    node.position({ x: clamp(node.x(), CANVAS_WIDTH - element.width), y: clamp(node.y(), CANVAS_HEIGHT - element.height) });
+                  }}
+                  onDragEnd={(event) => {
+                    const x = snap(event.currentTarget.x(), CANVAS_WIDTH - element.width);
+                    const y = snap(event.currentTarget.y(), CANVAS_HEIGHT - element.height);
+                    event.currentTarget.position({ x, y });
+                    onMove(element.id, x, y);
+                  }}>
+                  <SceneWidget element={element} preview={preview} onUpdate={onUpdate} />
 
-            {elements.map((element) => {
-              const isSelected = element.id === selectedId;
-
-              return (
-                <Fragment key={element.id}>
-                  <Group
-                    x={element.x}
-                    y={element.y}
-                    draggable
-                    onClick={() => onSelect(element.id)}
-                    onTap={() => onSelect(element.id)}
-                    onDragEnd={(event) =>
-                      onMove(
-                        element.id,
-                        event.target.x(),
-                        event.target.y(),
-                      )
-                    }
-                  >
-                    <Rect
-                      width={element.width}
-                      height={element.height}
-                      fill="#2563eb"
-                      cornerRadius={10}
-                      stroke={
-                        isSelected ? "#93c5fd" : undefined
-                      }
-                      strokeWidth={isSelected ? 3 : 0}
-                    />
-
-                    <Text
-                      y={22}
-                      width={element.width}
-                      text={element.text}
-                      align="center"
-                      fontSize={16}
-                      fontFamily="Inter, sans-serif"
-                      fill="#ffffff"
-                      listening={false}
-                    />
-                  </Group>
-                </Fragment>
-              );
-            })}
-          </Layer>
-        </Stage>
+                </Group>;
+              })}
+              {!preview && <Transformer
+                ref={transformerRef}
+                rotateEnabled={false}
+                flipEnabled={false}
+                keepRatio
+                ignoreStroke
+                anchorSize={9}
+                anchorCornerRadius={2}
+                anchorFill="#e3efff"
+                anchorStroke="#5795ff"
+                borderStroke="#75aaff"
+                borderStrokeWidth={1.5}
+                padding={0}
+                enabledAnchors={["top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right"]}
+                boundBoxFunc={(oldBox, newBox) => {
+                  // Transformer boxes are in absolute coordinates, including the responsive stage scale.
+                  const epsilon = 0.01;
+                  if (newBox.width < 80 * scale || newBox.height < 48 * scale
+                    || newBox.x < -epsilon || newBox.y < -epsilon
+                    || newBox.x + newBox.width > CANVAS_WIDTH * scale + epsilon
+                    || newBox.y + newBox.height > CANVAS_HEIGHT * scale + epsilon) return oldBox;
+                  return newBox;
+                }}
+              />}
+            </Layer>
+          </Stage>
+        </div>
+      </div>
+      <div className="canvas-footer" style={{ maxWidth: CANVAS_WIDTH, margin: "14px auto 0", display: "flex", gap: 16, justifyContent: "space-between", flexWrap: "wrap" }}>
+        <p className="canvas-helper hint" style={{ margin: 0 }}>
+          {preview ? "Live preview · Try playback, volume, temperature, and drive mode." : "Drag to arrange · Corners scale proportionally · Side handles stretch · Click empty space to deselect"}
+        </p>
+        <span className="canvas-element-count" style={{ fontSize: 10, color: "#64748b" }}>{elements.length} component{elements.length === 1 ? "" : "s"}</span>
       </div>
     </section>
   );
