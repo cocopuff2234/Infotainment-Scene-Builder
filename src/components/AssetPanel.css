@@ -1,0 +1,42 @@
+/* Styles for the grouped asset list. Kept in its own file so App.css
+   does not need to change. */
+
+.asset-panel {
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+}
+
+.asset-group {
+  margin-bottom: 18px;
+}
+
+.asset-group-title {
+  margin: 0 0 8px;
+  color: #60a5fa;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.asset-group .asset-card {
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  cursor: grab;
+}
+
+.asset-group .asset-card:active {
+  cursor: grabbing;
+}
+
+.asset-group .asset-card:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.asset-group .asset-card small {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
