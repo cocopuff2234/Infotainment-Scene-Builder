@@ -1,0 +1,125 @@
+/* The editor's App.css sets a 1180px minimum width on body, which is
+   too wide for a login screen. This stylesheet only loads on
+   login.html, so the editor is unaffected. */
+body {
+  min-width: 0;
+}
+
+.login-page {
+  min-height: 100vh;
+  padding: 32px 24px;
+
+  display: grid;
+  place-items: center;
+
+  background:
+    radial-gradient(
+      ellipse at top,
+      #172554aa 0%,
+      transparent 60%
+    ),
+    #080b12;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 32px;
+
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.login-subtitle {
+  margin: 8px 0 28px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.login-card input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.primary-button {
+  width: 100%;
+  padding: 11px 14px;
+  color: #ffffff;
+  background: #2563eb;
+  border: 1px solid #3b82f6;
+  border-radius: 7px;
+  font-weight: 600;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-error {
+  margin: 0 0 16px;
+  padding: 9px 11px;
+  color: #fecaca;
+  background: #450a0a66;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.login-switch {
+  margin: 18px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
+.link-button {
+  padding: 0;
+  color: #60a5fa;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+}
+
+.login-divider {
+  margin: 22px 0;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  color: #475569;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #1e293b;
+}
+
+.guest-button {
+  width: 100%;
+  padding: 11px 14px;
+}
+
+.login-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.login-card .hint {
+  margin-top: 14px;
+  text-align: center;
+}
