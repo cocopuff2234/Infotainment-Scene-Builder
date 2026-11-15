@@ -1,4 +1,9 @@
+import type { ReactNode } from "react";
+
 type TopBarProps = {
+  projectName: string;
+  onRename: (name: string) => void;
+  projectActions: ReactNode;
   saveStatus: string;
   preview: boolean;
   onTogglePreview: () => void;
@@ -9,14 +14,18 @@ type TopBarProps = {
   canRedo: boolean;
 };
 
-export function TopBar({ saveStatus, preview, onTogglePreview, onExport, onUndo, onRedo, canUndo, canRedo }: TopBarProps) {
+export function TopBar({ projectName, onRename, projectActions, saveStatus, preview, onTogglePreview, onExport, onUndo, onRedo, canUndo, canRedo }: TopBarProps) {
   return (
     <header className="topbar">
       <div className="editor-brand-group">
         <a className="editor-home" href="/" aria-label="Back to home">▣</a>
-        <div><p className="eyebrow">Infotainment Scene Builder</p><h1>My cockpit <span className="editor-project-badge">PERSONAL WORKSPACE</span></h1></div>
+        <div><p className="eyebrow">Infotainment Scene Builder</p><h1><button className="editor-project-name" title="Rename project" disabled={preview} onClick={() => {
+                  const name = window.prompt("Project name", projectName);
+                  if (name?.trim()) onRename(name.trim().slice(0, 100));
+                }}>{projectName} <span aria-hidden="true">✎</span></button><span className="editor-project-badge">PERSONAL WORKSPACE</span></h1></div>
       </div>
       <div className="topbar-actions">
+        {projectActions}
         <span className="save-status" role="status"><span className="editor-status-dot" />{saveStatus}</span>
         <div className="editor-history">
           <button className="editor-icon-button" onClick={onUndo} disabled={!canUndo} aria-label="Undo" title="Undo (⌘/Ctrl Z)">↶</button>

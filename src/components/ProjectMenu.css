@@ -1,0 +1,140 @@
+.project-menu-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.project-menu-toolbar button,
+.project-menu-toolbar a,
+.project-menu-dialog button,
+.project-menu-dialog a {
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+  border: 1px solid #2a3c57;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #142137;
+  color: #bacce6;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.project-menu-toolbar button:hover:not(:disabled),
+.project-menu-toolbar a:hover,
+.project-menu-dialog button:hover:not(:disabled),
+.project-menu-dialog a:hover {
+  background: #1c304e;
+  border-color: #4a6d9f;
+}
+
+.project-menu-toolbar button:disabled,
+.project-menu-dialog button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.project-menu-toolbar :focus-visible,
+.project-menu-dialog :focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+.project-menu-toolbar .project-menu-save,
+.project-menu-dialog .project-menu-save {
+  background: #2563eb;
+  color: #fff;
+  border-color: #4788f2;
+}
+
+.project-menu-toolbar .project-menu-save:hover:not(:disabled),
+.project-menu-dialog .project-menu-save:hover:not(:disabled) {
+  background: #3475f1;
+}
+
+.project-menu-toolbar .project-menu-account {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-menu-toolbar .project-menu-status {
+  border-color: transparent;
+  background: transparent;
+  color: #93a9c8;
+  font-size: 10px;
+}
+
+.project-menu-dialog {
+  box-sizing: border-box;
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid #2c405c;
+  border-radius: 14px;
+  background: #0d1522;
+  color: #bdcce1;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  box-shadow: 0 24px 90px #0009;
+  color-scheme: dark;
+}
+
+.project-menu-dialog::backdrop {
+  background: #030812b8;
+  backdrop-filter: blur(4px);
+}
+
+.project-menu-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.project-menu-dialog h2,
+.project-menu-dialog h3,
+.project-menu-dialog h4,
+.project-menu-dialog p {
+  margin: 0 0 12px;
+}
+
+.project-menu-dialog h2 { color: #e2ecfa; font-size: 20px; font-weight: 550; letter-spacing: -.03em; }
+.project-menu-dialog h3 { color: #c6d8f2; font-size: 14px; font-weight: 550; }
+.project-menu-dialog h4 { color: #8ea7ca; font-size: 11px; font-weight: 500; margin-top: 16px; }
+.project-menu-heading > div > p { color: #8fa4c1; font-size: 12px; }
+.project-menu-heading > button { flex-shrink: 0; }
+.project-menu-section { border-top: 1px solid #24334a; margin-top: 18px; padding-top: 18px; }
+.project-menu-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.project-menu-current { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.project-menu-current strong { color: #e2ecfa; overflow-wrap: anywhere; }
+.project-menu-current span { color: #91b7ed; font-size: 11px; }
+.project-menu-dialog .project-menu-note { color: #8fa4c1; font-size: 11px; margin: 12px 0 0; }
+.project-menu-feedback { color: #9bd4c5; margin-top: 12px; }
+.project-menu-feedback:empty { display: none; }
+.project-menu-error { color: #f2b5c0; overflow-wrap: anywhere; }
+.project-menu-dialog div.project-menu-error { border: 1px solid #633344; background: #2a1823; padding: 12px; border-radius: 7px; margin-top: 12px; }
+.project-menu-configuration { border: 1px solid #2c4770; background: #111f33; padding: 14px; border-radius: 7px; margin-top: 16px; }
+.project-menu-configuration p { margin: 8px 0 0; font-size: 12px; }
+.project-menu-configuration code { color: #a9cdff; overflow-wrap: anywhere; }
+.project-menu-list { list-style: none; margin: 0; padding: 0; }
+.project-menu-list li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 0; border-bottom: 1px solid #202f45; }
+.project-menu-record { min-width: 0; }
+.project-menu-record strong { display: block; color: #d3e2f8; font-size: 13px; overflow-wrap: anywhere; }
+.project-menu-record small { display: block; color: #8fa4c1; font-size: 10px; margin-top: 4px; }
+.project-menu-list .project-menu-actions { flex-shrink: 0; }
+.project-menu-dialog .project-menu-danger { color: #f0aebb; background: #331a23; border-color: #633344; }
+.project-menu-dialog .project-menu-danger:hover:not(:disabled) { background: #49202d; border-color: #96546a; }
+
+@media (max-width: 480px) {
+  .project-menu-dialog { padding: 18px; }
+  .project-menu-list li { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .project-menu-toolbar { gap: 4px; }
+  .project-menu-toolbar button, .project-menu-toolbar a { padding: 7px 8px; }
+}

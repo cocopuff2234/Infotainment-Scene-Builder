@@ -1,0 +1,60 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { ASSETS } from "../data/assets";
+import { createStarterProject } from "./localDraft";
+import { parseProject, replaceStartingElements, startingScene } from "./projectDocument";
+
+test("starter project validates without losing component states", () => {
+  const document = createStarterProject();
+  const volume = startingScene(document).elements.find((element) => element.type === "volume")!;
+  volume.value = 0;
+  volume.active = false;
+  volume.props = { source: "media.volume", enabled: false, gain: 0 };
+  assert.deepEqual(parseProject(document), document);
+  assert.notEqual(parseProject(document), document);
+});
+
+test("all registered asset types can be saved and reopened", () => {
+  for (const asset of ASSETS) {
+    const document = createStarterProject();
+    document.scenes[0].elements = [{ id: "component", type: asset.type, x: 0, y: 0, width: asset.width, height: asset.height, text: asset.text, ...(asset.props ? { props: asset.props } : {}) }];
+    assert.equal(startingScene(parseProject(document)).elements[0].type, asset.type);
+  }
+});
+
+test("document edits preserve other scenes, metadata, and navigation actions", () => {
+  const document = createStarterProject();
+  document.scenes.push({ id: "second", name: "Second scene", elements: [] });
+  document.scenes[0].elements[0].action = { type: "navigate", targetSceneId: "second", transition: { type: "fade", durationMs: 200 } };
+  const updated = replaceStartingElements(document, document.scenes[0].elements.slice(0, 1));
+  assert.equal(updated.scenes[1], document.scenes[1]);
+  assert.equal(updated.name, document.name);
+  assert.deepEqual(parseProject(updated).scenes[0].elements[0].action, document.scenes[0].elements[0].action);
+  assert.equal(document.scenes[0].elements.length, 5);
+});
+
+test("unsupported schema versions and resolutions are rejected rather than silently rewritten", () => {
+  assert.throws(() => parseProject({ ...createStarterProject(), schemaVersion: 2 }), /unsupported project/);
+  assert.throws(() => parseProject({ ...createStarterProject(), screen: { width: 820, height: 560 } }), /unsupported project/);
+  assert.throws(() => parseProject({ ...createStarterProject(), futureSetting: true }), /unsupported project/);
+});
+
+test("invalid IDs, geometry, component types, scalar props, and missing navigation targets are rejected", () => {
+  const corruptions = [
+    (document: ReturnType<typeof createStarterProject>) => { document.startSceneId = "missing"; },
+    (document: ReturnType<typeof createStarterProject>) => { document.scenes.push(document.scenes[0]); },
+    (document: ReturnType<typeof createStarterProject>) => { document.scenes[0].elements.push(document.scenes[0].elements[0]); },
+    (document: ReturnType<typeof createStarterProject>) => { document.scenes[0].elements[0].x = 999; },
+    (document: ReturnType<typeof createStarterProject>) => { document.scenes[0].elements[0].width = -1; },
+    (document: ReturnType<typeof createStarterProject>) => { document.scenes[0].elements[0].value = Number.NaN; },
+    (document: ReturnType<typeof createStarterProject>) => { document.scenes[0].elements[0].action = { type: "navigate", targetSceneId: "missing", transition: { type: "fade", durationMs: 100 } }; },
+  ];
+  for (const corrupt of corruptions) {
+    const document = createStarterProject();
+    corrupt(document);
+    assert.throws(() => parseProject(document));
+  }
+  const document = createStarterProject();
+  assert.throws(() => parseProject({ ...document, scenes: [{ ...document.scenes[0], elements: [{ ...document.scenes[0].elements[0], type: "unknown" }] }] }));
+  assert.throws(() => parseProject({ ...document, scenes: [{ ...document.scenes[0], elements: [{ ...document.scenes[0].elements[0], props: { nested: { value: 5 } } }] }] }));
+});
