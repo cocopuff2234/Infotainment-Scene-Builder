@@ -10,7 +10,7 @@
 
 body {
   margin: 0;
-  min-width: 1180px;
+  min-width: 320px;
   min-height: 100vh;
 }
 
@@ -24,6 +24,7 @@ button {
 }
 
 .app-shell {
+  min-width: 1180px;
   min-height: 100vh;
   background: #080b12;
 }

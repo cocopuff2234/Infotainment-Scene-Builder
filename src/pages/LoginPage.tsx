@@ -18,13 +18,17 @@ import "./LoginPage.css";
 type Mode = "signin" | "signup";
 
 function goToEditor() {
-  window.location.assign("/");
+  window.location.assign("/editor");
 }
 
 export function LoginPage() {
   const [session, setSession] = useState<Session | null>(getSession);
 
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(() =>
+      new URLSearchParams(window.location.search).get("mode") === "signup"
+        ? "signup"
+        : "signin",
+    );
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
