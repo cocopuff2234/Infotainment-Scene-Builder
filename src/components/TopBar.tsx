@@ -1,4 +1,8 @@
-export function TopBar() {
+type TopBarProps = {
+  onExport: () => void;
+};
+
+export function TopBar({ onExport }: TopBarProps) {
   return (
     <header className="topbar">
       <div>
@@ -9,7 +13,7 @@ export function TopBar() {
       <div className="topbar-actions">
         <span className="save-status">Unsaved changes</span>
 
-        <button className="secondary-button">
+        <button className="secondary-button" onClick={onExport}>
           Export JSON
         </button>
       </div>

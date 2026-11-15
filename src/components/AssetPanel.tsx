@@ -1,11 +1,15 @@
+import { ASSETS, ASSET_DRAG_MIME, ASSET_GROUPS } from "../data/assets";
+import type { AssetType } from "../types/scene";
+import "./AssetPanel.css";
+
 type AssetPanelProps = {
   elementCount: number;
-  onAddButton: () => void;
+  onAddAsset: (type: AssetType) => void;
 };
 
 export function AssetPanel({
   elementCount,
-  onAddButton,
+  onAddAsset,
 }: AssetPanelProps) {
   return (
     <aside className="panel asset-panel">
@@ -19,17 +23,47 @@ export function AssetPanel({
       </div>
 
       <p className="panel-description">
-        Add building blocks to your scene.
+        Click an asset, or drag it onto the canvas.
       </p>
 
-      <button className="asset-card" onClick={onAddButton}>
-        <span className="asset-icon">+</span>
+      {ASSET_GROUPS.map((group) => (
+        <section key={group} className="asset-group">
+          <h3 className="asset-group-title">{group}</h3>
 
-        <span>
-          <strong>Button</strong>
-          <small>Interactive control</small>
-        </span>
-      </button>
+          {ASSETS.filter((asset) => asset.group === group).map(
+            (asset) => (
+              <div
+                key={asset.type}
+                className="asset-card"
+                role="button"
+                tabIndex={0}
+                draggable
+                onClick={() => onAddAsset(asset.type)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onAddAsset(asset.type);
+                  }
+                }}
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(
+                    ASSET_DRAG_MIME,
+                    asset.type,
+                  );
+                  event.dataTransfer.effectAllowed = "copy";
+                }}
+              >
+                <span className="asset-icon">{asset.icon}</span>
+
+                <span>
+                  <strong>{asset.label}</strong>
+                  <small>{asset.description}</small>
+                </span>
+              </div>
+            ),
+          )}
+        </section>
+      ))}
     </aside>
   );
 }

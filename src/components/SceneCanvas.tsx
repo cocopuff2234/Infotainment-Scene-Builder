@@ -1,27 +1,62 @@
-import { Fragment } from "react";
+import { Fragment, useRef } from "react";
+import type { DragEvent } from "react";
+import type Konva from "konva";
 import { Group, Layer, Rect, Stage, Text } from "react-konva";
 
-import type { SceneElement } from "../types/scene";
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../config/project";
+import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
+import type { AssetType, SceneElement } from "../types/scene";
+import { ElementShape } from "./ElementShape";
 
 type SceneCanvasProps = {
   elements: SceneElement[];
   selectedId: string;
   onSelect: (id: string) => void;
   onMove: (id: string, x: number, y: number) => void;
+  onDropAsset: (type: AssetType, x: number, y: number) => void;
 };
 
-const CANVAS_WIDTH = 820;
-const CANVAS_HEIGHT = 560;
+const CANVAS_WIDTH = SCREEN_WIDTH;
+const CANVAS_HEIGHT = SCREEN_HEIGHT;
 
 export function SceneCanvas({
   elements,
   selectedId,
   onSelect,
   onMove,
+  onDropAsset,
 }: SceneCanvasProps) {
+  const stageRef = useRef<Konva.Stage>(null);
+
   function clearSelection(event: any) {
     if (event.target === event.target.getStage()) {
       onSelect("");
+    }
+  }
+
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    if (event.dataTransfer.types.includes(ASSET_DRAG_MIME)) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    const type = event.dataTransfer.getData(ASSET_DRAG_MIME);
+    const stage = stageRef.current;
+
+    if (!stage || !isAssetType(type)) {
+      return;
+    }
+
+    event.preventDefault();
+
+    // Converts the browser event position into canvas coordinates.
+    stage.setPointersPositions(event.nativeEvent);
+    const position = stage.getPointerPosition();
+
+    if (position) {
+      onDropAsset(type, position.x, position.y);
     }
   }
 
@@ -38,8 +73,13 @@ export function SceneCanvas({
         </span>
       </div>
 
-      <div className="canvas-wrap">
+      <div
+        className="canvas-wrap"
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         <Stage
+          ref={stageRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
           onMouseDown={clearSelection}
@@ -80,26 +120,9 @@ export function SceneCanvas({
                       )
                     }
                   >
-                    <Rect
-                      width={element.width}
-                      height={element.height}
-                      fill="#2563eb"
-                      cornerRadius={10}
-                      stroke={
-                        isSelected ? "#93c5fd" : undefined
-                      }
-                      strokeWidth={isSelected ? 3 : 0}
-                    />
-
-                    <Text
-                      y={22}
-                      width={element.width}
-                      text={element.text}
-                      align="center"
-                      fontSize={16}
-                      fontFamily="Inter, sans-serif"
-                      fill="#ffffff"
-                      listening={false}
+                    <ElementShape
+                      element={element}
+                      isSelected={isSelected}
                     />
                   </Group>
                 </Fragment>
