@@ -1,0 +1,66 @@
+/* Keep library styles local to this panel, including responsive overrides. */
+.editor-asset-panel .editor-asset-library {
+  max-height: min(48vh, 520px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  padding: 4px 6px 4px 3px;
+}
+
+.editor-asset-panel .asset-group + .asset-group {
+  margin-top: 20px;
+}
+
+.editor-asset-panel .asset-group-title {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.editor-asset-panel .asset-group .editor-asset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-asset-panel .asset-card {
+  min-width: 0;
+}
+
+.editor-asset-panel .asset-card:not(:disabled) {
+  cursor: grab;
+}
+
+.editor-asset-panel .asset-card:not(:disabled):active {
+  cursor: grabbing;
+}
+
+.editor-asset-panel .asset-card:disabled {
+  cursor: not-allowed;
+}
+
+.editor-asset-panel .asset-card-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-asset-panel .asset-card strong,
+.editor-asset-panel .asset-card small {
+  overflow-wrap: anywhere;
+}
+
+.editor-asset-panel .editor-asset-library:focus-visible,
+.editor-asset-panel .asset-card:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+@media (max-width: 650px) {
+  .editor-asset-panel .asset-group .editor-asset-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

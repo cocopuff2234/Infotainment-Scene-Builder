@@ -4,6 +4,7 @@ import type { Group as KonvaGroup } from "konva/lib/Group";
 import type { Circle as KonvaCircle } from "konva/lib/shapes/Circle";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { SceneElement } from "../types/scene";
+import { ElementShape } from "./ElementShape";
 
 const blue = "#5795ff";
 const white = "#edf4ff";
@@ -217,7 +218,8 @@ export function SceneWidget(props: WidgetProps) {
   const { element, preview, onUpdate } = props;
   switch (element.type) {
     case "map": return <MapWidget {...props} />;
-    case "music": return <MusicWidget {...props} />;
+    case "music":
+    case "music-player": return <MusicWidget {...props} />;
     case "volume": return <VolumeWidget {...props} />;
     case "climate": return <ClimateWidget {...props} />;
     case "button": {
@@ -234,5 +236,6 @@ export function SceneWidget(props: WidgetProps) {
         <Circle x={active ? 188 : 177} y={32.5} radius={5} fill={active ? "#fff" : "#8c9eb9"} listening={false} />
       </Group>;
     }
+    default: return <ElementShape element={element} isSelected={false} />;
   }
 }

@@ -6,7 +6,9 @@ import { AssetPanel } from "./components/AssetPanel";
 import { SceneCanvas } from "./components/SceneCanvas";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { initialSceneElements } from "./data/initialScene";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, componentDefaults } from "./types/scene";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, componentDefaults, isCockpitType } from "./types/scene";
+import { ASSET_BY_TYPE, isAssetType } from "./data/assets";
+import { buildProject, downloadProject } from "./utils/exportScene";
 import type { ElementType, SceneElement } from "./types/scene";
 
 const STORAGE_KEY = "infotainment-scene-v2";
@@ -18,7 +20,7 @@ function loadScene(): SceneElement[] {
     if (Array.isArray(stored) && stored.every((item: unknown) => {
       if (!item || typeof item !== "object") return false;
       const e = item as Record<string, unknown>;
-      return typeof e.id === "string" && typeof e.type === "string" && Object.hasOwn(componentDefaults, e.type)
+      return typeof e.id === "string" && typeof e.type === "string" && isAssetType(e.type)
         && typeof e.text === "string" && [e.x, e.y, e.width, e.height].every((v) => typeof v === "number" && Number.isFinite(v))
         && Number(e.width) > 0 && Number(e.height) > 0 && Number(e.x) >= 0 && Number(e.y) >= 0
         && Number(e.x) + Number(e.width) <= CANVAS_WIDTH && Number(e.y) + Number(e.height) <= CANVAS_HEIGHT
@@ -108,20 +110,27 @@ function App() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [preview, selectedElement, updateElement, undo, redo, duplicateSelected, deleteSelected]);
 
-  function addElement(type: ElementType) {
-    const element: SceneElement = { ...componentDefaults[type], id: crypto.randomUUID(), type, x: 64 + (elements.length % 5) * 24, y: 152 + (elements.length % 5) * 24 };
+  function addElement(type: ElementType, dropX?: number, dropY?: number) {
+    const asset = ASSET_BY_TYPE[type];
+    const defaults = isCockpitType(type) ? componentDefaults[type] : asset;
+    const width = Math.max(80, Math.min(CANVAS_WIDTH, defaults.width));
+    const height = Math.max(48, Math.min(CANVAS_HEIGHT, defaults.height));
+    const x = dropX === undefined ? 64 + (elements.length % 5) * 24 : dropX - width / 2;
+    const y = dropY === undefined ? 152 + (elements.length % 5) * 24 : dropY - height / 2;
+    const element: SceneElement = {
+      text: defaults.text, width, height,
+      ...(isCockpitType(type) ? componentDefaults[type] : {}),
+      id: crypto.randomUUID(), type,
+      x: Math.max(0, Math.min(CANVAS_WIDTH - width, x)),
+      y: Math.max(0, Math.min(CANVAS_HEIGHT - height, y)),
+      ...(asset.props ? { props: { ...asset.props } } : {}),
+    };
     commit((current) => [...current, element]);
     setSelectedId(element.id);
   }
 
   function exportScene() {
-    const data = { version: 1, name: "My cockpit", width: CANVAS_WIDTH, height: CANVAS_HEIGHT, elements };
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "infotainment-scene.json";
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadProject(buildProject(elements));
   }
 
   return (
@@ -129,7 +138,7 @@ function App() {
       <TopBar saveStatus={saveStatus} preview={preview} onTogglePreview={() => setPreview((v) => !v)} onExport={exportScene} onUndo={undo} onRedo={redo} canUndo={history.past.length > 0 && !preview} canRedo={history.future.length > 0 && !preview} />
       <section className="workspace">
         <AssetPanel elements={elements} selectedId={selectedId} onSelect={setSelectedId} onAdd={addElement} preview={preview} onReset={() => { if (window.confirm("Replace this scene with the starter cockpit? You can undo this.")) { commit(() => initialSceneElements); setSelectedId("map-1"); } }} />
-        <SceneCanvas elements={elements} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => updateElement(id, { x, y })} onUpdate={updateElement} preview={preview} />
+        <SceneCanvas elements={elements} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => updateElement(id, { x, y })} onUpdate={updateElement} onDropAsset={addElement} preview={preview} />
         <PropertiesPanel selectedElement={selectedElement} onUpdate={updateElement} onDuplicate={duplicateSelected} onDelete={deleteSelected} onReorder={(direction) => {
           commit((current) => {
             const index = current.findIndex((e) => e.id === selectedId);

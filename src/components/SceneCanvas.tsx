@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { DragEvent } from "react";
+import type { Stage as KonvaStage } from "konva/lib/Stage";
 import { Circle, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
 import type { Group as KonvaGroup } from "konva/lib/Group";
 import type { Transformer as KonvaTransformer } from "konva/lib/shapes/Transformer";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, type SceneElement } from "../types/scene";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type SceneElement } from "../types/scene";
+import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
 import { SceneWidget } from "./SceneWidgets";
 
 type SceneCanvasProps = {
@@ -12,6 +15,7 @@ type SceneCanvasProps = {
   onSelect: (id: string) => void;
   onMove: (id: string, x: number, y: number) => void;
   onUpdate: (id: string, patch: Partial<SceneElement>) => void;
+  onDropAsset: (type: AssetType, x: number, y: number) => void;
   preview: boolean;
 };
 
@@ -20,8 +24,9 @@ const clamp = (value: number, max: number) => Math.max(0, Math.min(Math.max(0, m
 // Keeping the upper bound on the grid prevents a last-pixel jump after a bounded drag.
 const snap = (value: number, max: number) => clamp(Math.round(value / 8) * 8, Math.floor(Math.max(0, max) / 8) * 8);
 
-export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, preview }: SceneCanvasProps) {
+export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, onDropAsset, preview }: SceneCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<KonvaStage>(null);
   const elementRefs = useRef(new Map<string, KonvaGroup>());
   const transformerRef = useRef<KonvaTransformer>(null);
   const [availableWidth, setAvailableWidth] = useState(CANVAS_WIDTH + 18);
@@ -56,6 +61,26 @@ export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, 
     onUpdate(element.id, { x, y, width, height });
   }
 
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!preview && event.dataTransfer.types.includes(ASSET_DRAG_MIME)) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    const type = event.dataTransfer.getData(ASSET_DRAG_MIME);
+    const stage = stageRef.current;
+    if (preview || !stage || !isAssetType(type)) return;
+    event.preventDefault();
+    stage.setPointersPositions(event.nativeEvent);
+    // Invert the responsive stage scale so dropped assets land under the pointer.
+    const position = stage.getRelativePointerPosition();
+    if (position && position.x >= 0 && position.x <= CANVAS_WIDTH && position.y >= 0 && position.y <= CANVAS_HEIGHT) {
+      onDropAsset(type, position.x, position.y);
+    }
+  }
+
   function clearSelection(event: KonvaEventObject<MouseEvent | TouchEvent>) {
     if (!preview && event.target === event.target.getStage()) onSelect("");
   }
@@ -76,8 +101,8 @@ export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, 
       </div>
 
       <div className="canvas-viewport" ref={containerRef} style={{ width: "100%", maxWidth: CANVAS_WIDTH + 18, margin: "0 auto" }}>
-        <div className="canvas-wrap" style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: "#080f1d", boxShadow: "0 24px 70px #00000035" }}>
-          <Stage width={CANVAS_WIDTH * scale} height={CANVAS_HEIGHT * scale}
+        <div className="canvas-wrap" onDragOver={handleDragOver} onDrop={handleDrop} style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: "#080f1d", boxShadow: "0 24px 70px #00000035" }}>
+          <Stage ref={stageRef} width={CANVAS_WIDTH * scale} height={CANVAS_HEIGHT * scale}
             scaleX={scale} scaleY={scale}
             onMouseDown={clearSelection} onTouchStart={clearSelection}>
             <Layer>
