@@ -1,7 +1,8 @@
 
 .login-page {
+  position: relative;
   min-height: 100vh;
-  padding: 32px 24px;
+  padding: 100px 24px 48px;
 
   display: grid;
   place-items: center;
@@ -14,6 +15,9 @@
     ),
     #080b12;
 }
+
+.login-layout { width: 100%; max-width: 400px; }
+.login-back-navigation { position: absolute; top: 24px; left: 24px; right: 24px; display: flex; align-items: center; justify-content: flex-start; flex-wrap: wrap; gap: 10px; }
 
 .login-card {
   box-sizing: border-box;
@@ -188,6 +192,7 @@
 }
 
 @media (max-width: 480px) {
-  .login-page { padding: 20px 14px; }
+  .login-page { padding: 128px 14px 28px; }
+  .login-back-navigation { top: 18px; left: 14px; right: 14px; gap: 8px; }
   .login-card { padding: 24px 20px; box-sizing: border-box; }
 }

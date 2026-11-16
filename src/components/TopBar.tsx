@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BackLink } from "./BackLink";
 
 type TopBarProps = {
   projectName: string;
@@ -18,7 +19,7 @@ export function TopBar({ projectName, onRename, projectActions, saveStatus, prev
   return (
     <header className="topbar">
       <div className="editor-brand-group">
-        <a className="editor-home" href="/" aria-label="Back to home">▣</a>
+        <BackLink href="/" title="Back to home">Home</BackLink>
         <div><p className="eyebrow">Infotainment Scene Builder</p><h1><button className="editor-project-name" title="Rename project" disabled={preview} onClick={() => {
                   const name = window.prompt("Project name", projectName);
                   if (name?.trim()) onRename(name.trim().slice(0, 100));

@@ -8,9 +8,9 @@
 .editor-project-name > span { margin-left: 7px; color: #6f94c9; font-size: 12px; }
 .editor-recovery-warning { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 26px; color: #d7c39a; background: #30281a; border-bottom: 1px solid #5b4b2e; font-size: 12px; line-height: 1.7; }
 .editor-recovery-warning > button { flex-shrink: 0; padding: 4px 9px; border: 1px solid #75603a; border-radius: 5px; background: transparent; color: inherit; font-size: 17px; }
-.editor-brand-group { display: flex; gap: 13px; align-items: center; flex-shrink: 0; }
-.editor-home { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; border: 1px solid #2b4770; background: #14243d; color: #83b5ff; text-decoration: none; font-size: 25px; transition: background .2s; }
-.editor-home:hover { background: #203b60; }
+.editor-brand-group { display: flex; gap: 13px; align-items: center; flex-shrink: 0; min-width: 0; max-width: 100%; }
+.editor-brand-group > div { min-width: 0; }
+
 .app-shell .eyebrow { font-size: 9px; color: #789fd7; letter-spacing: .16em; margin-bottom: 7px; }
 .app-shell .topbar h1 { font-size: 19px; letter-spacing: -.035em; font-weight: 550; }
 .editor-project-badge { display: inline-block; font-size: 7px; letter-spacing: .1em; font-weight: 500; color: #6f829d; border: 1px solid #263449; border-radius: 4px; padding: 4px 6px; margin-left: 9px; vertical-align: middle; }

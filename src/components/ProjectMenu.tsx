@@ -7,6 +7,7 @@ import {
 } from "../services/projects";
 import { supabaseConfigured, supabaseConfigurationError } from "../services/supabase";
 import { useAuth } from "../services/useAuth";
+import { BackLink } from "./BackLink";
 import "./ProjectMenu.css";
 
 type Props = { document: Project; onOpen: (document: Project) => void; onNew: () => void };
@@ -211,7 +212,7 @@ export function ProjectMenu({ document, onOpen, onNew }: Props) {
       onClose={() => setIsOpen(false)}>
       <header className="project-menu-heading">
         <div><h2 id={titleId}>Projects & account</h2><p id={descriptionId}>Save explicitly to cloud, or keep working locally. No cloud autosave.</p></div>
-        <button type="button" autoFocus aria-label="Close project manager" onClick={() => dialog.current?.close()}>Close</button>
+        <BackLink autoFocus onClick={() => dialog.current?.close()}>Back to editor</BackLink>
       </header>
       <section className="project-menu-section" aria-label="Current design" aria-busy={!!busy}>
         <h3>Current design</h3>

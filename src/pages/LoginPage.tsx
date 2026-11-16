@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { authErrorMessage, continueAsGuest, signIn, signOut, signUp } from "../services/auth";
 import { requireSupabase, supabase, supabaseConfigured, supabaseConfigurationError } from "../services/supabase";
 import { useAuth } from "../services/useAuth";
+import { BackLink } from "../components/BackLink";
 import "../App.css";
 import "./LoginPage.css";
 
@@ -159,6 +160,11 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
+      <div className="login-layout">
+        <nav className="login-back-navigation" aria-label="Back navigation">
+          <BackLink href="/">Back to home</BackLink>
+          {!showAccount && mode !== "signin" && <BackLink onClick={() => changeMode("signin")} disabled={busy}>Back to sign in</BackLink>}
+        </nav>
       <div className="login-card" aria-busy={busy}>
         <p className="eyebrow">Infotainment Scene Builder</p>
         <h1>{showAccount ? "Welcome back" : titles[mode]}</h1>
@@ -214,7 +220,7 @@ export function LoginPage() {
               <button type="button" className="link-button" disabled={busy} onClick={() => changeMode(isSignUp ? "signin" : "signup")}>
                 {isSignUp ? "Already have an account? Sign in" : "Create an account"}
               </button>
-              {mode !== "signin" && !isSignUp && <button type="button" className="link-button" disabled={busy} onClick={() => changeMode("signin")}>Back to sign in</button>}
+
               {mode !== "forgot" && <button type="button" className="link-button" disabled={busy} onClick={() => changeMode("forgot")}>{isUpdate ? "Request a new reset link" : "Forgot password?"}</button>}
             </div>
           </>
@@ -224,6 +230,7 @@ export function LoginPage() {
           {session ? "Sign out and continue as guest" : "Continue as guest"}
         </button>
         <p className="hint">Guests can design and export scenes locally. Guest mode does not create an account.</p>
+      </div>
       </div>
     </main>
   );
