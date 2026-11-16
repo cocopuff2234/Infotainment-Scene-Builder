@@ -1,0 +1,20 @@
+.background-settings { margin-top: 24px; padding-top: 22px; border-top: 1px solid #26374f; }
+.background-settings h3 { margin: 0; color: #bdcce1; font-size: 12px; font-weight: 500; }
+.background-settings .panel-heading > span { color: #729cd6; font-size: 18px; }
+.background-description { margin: 10px 0 17px; font-size: 10px; line-height: 1.8; color: #788ea9; }
+.background-settings fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.background-settings fieldset:disabled { opacity: .6; }
+.background-color-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.background-settings .background-color-picker { display: flex; align-items: center; gap: 10px; margin: 0; }
+.background-settings input[type=color] { height: 30px; width: 43px; margin: 0; padding: 3px; cursor: pointer; }
+.background-color-code { color: #7b98be; font-family: monospace; font-size: 9px; }
+.background-rgb { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.background-rgb input { padding: 8px !important; }
+.background-settings select { width: 100%; margin-top: 7px; padding: 9px 7px; border: 1px solid #2a3c57; border-radius: 6px; font: inherit; font-size: 11px; text-transform: none; letter-spacing: 0; color: #bad0ee; background: #0b1627; }
+.background-settings select:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+.background-settings .image-upload { margin-bottom: 17px; }
+.background-settings .background-overlay-label { display: block; }
+.background-overlay-label > span { float: right; color: #9bbdeb; }
+.background-settings input[type=range] { accent-color: #6c9fff; padding: 0; cursor: pointer; }
+.background-reset { display: block; width: 100%; margin-top: 17px; padding: 9px; border: 1px solid #2a3c57; border-radius: 6px; background: #142137; color: #91add2; text-align: left; font-size: 10px; }
+.background-reset:hover:not(:disabled) { background: #1c304e; border-color: #4a6d9f; }

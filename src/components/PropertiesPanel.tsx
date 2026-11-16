@@ -1,16 +1,21 @@
+import { useState } from "react";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../types/scene";
 import type { SceneElement } from "../types/scene";
+import type { UploadedImage } from "../utils/imageUpload";
+import { ImageUpload } from "./ImageUpload";
 
 type PropertiesPanelProps = {
   selectedElement: SceneElement | undefined;
   onUpdate: (id: string, patch: Partial<SceneElement>) => void;
+  onReplaceImage: (id: string, image: UploadedImage) => void | Promise<void>;
   onDuplicate: () => void;
   onDelete: () => void;
   onReorder: (direction: number) => void;
   preview: boolean;
 };
 
-export function PropertiesPanel({ selectedElement: element, onUpdate, onDuplicate, onDelete, onReorder, preview }: PropertiesPanelProps) {
+export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceImage, onDuplicate, onDelete, onReorder, preview }: PropertiesPanelProps) {
+  const [imageUploadEpoch, setImageUploadEpoch] = useState(0);
   function numericField(key: "x" | "y" | "width" | "height", label: string) {
     if (!element) return null;
     const max = key === "width" ? CANVAS_WIDTH - element.x : key === "height" ? CANVAS_HEIGHT - element.y : key === "x" ? CANVAS_WIDTH - element.width : CANVAS_HEIGHT - element.height;
@@ -29,6 +34,21 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onDuplicat
           <div className="editor-property-section"><h3>Position & size <span>PX</span></h3><div className="property-grid">{numericField("x", "X position")}{numericField("y", "Y position")}{numericField("width", "Width")}{numericField("height", "Height")}</div></div>
           {(element.type === "volume" || element.type === "climate") && <div className="editor-property-section"><h3>{element.type === "volume" ? "Volume level" : "Temperature"}<span>{element.value ?? (element.type === "volume" ? 65 : 21)}{element.type === "volume" ? "%" : "°C"}</span></h3><label className="editor-range-label"><span className="sr-only">{element.type === "volume" ? "Volume" : "Temperature"}</span><input type="range" min={element.type === "volume" ? 0 : 16} max={element.type === "volume" ? 100 : 30} step={element.type === "volume" ? 1 : 0.5} value={element.value ?? (element.type === "volume" ? 65 : 21)} onChange={(event) => onUpdate(element.id, { value: event.target.valueAsNumber })} /></label></div>}
           {(element.type === "button" || element.type === "music") && <label className="editor-checkbox-label"><input type="checkbox" checked={element.active ?? false} onChange={(event) => onUpdate(element.id, { active: event.target.checked })} />{element.type === "music" ? "Playback active" : "Control enabled"}</label>}
+          {element.type === "image" && (
+            <div className="editor-property-section image-properties">
+              <h3>Image</h3>
+              <ImageUpload key={`${element.id}-${imageUploadEpoch}`} compact label={element.props?.src ? "Replace image" : "Upload image"} disabled={preview} onUpload={(image) => onReplaceImage(element.id, image)} />
+              <p className="image-properties-filename">{element.props?.src ? (typeof element.props.name === "string" && element.props.name ? element.props.name : "Current image") : "No image · placeholder shown"}</p>
+              <label>Image fit
+                <select value={element.props?.fit === "cover" || element.props?.fit === "stretch" ? element.props.fit : "contain"} onChange={(event) => onUpdate(element.id, { props: { ...element.props, fit: event.target.value } })}>
+                  <option value="contain">Contain</option>
+                  <option value="cover">Cover</option>
+                  <option value="stretch">Stretch</option>
+                </select>
+              </label>
+              <button type="button" className="secondary-button" disabled={!element.props?.src || preview} onClick={() => { setImageUploadEpoch((value) => value + 1); onUpdate(element.id, { props: { ...element.props, src: "", name: "" } }); }}>Remove image</button>
+            </div>
+          )}
           {element.type === "map" && <p className="editor-map-note">◇ Offline vector map. Edit the label to change the destination street. No API key needed.</p>}
           <div className="editor-property-section"><h3>Arrange</h3><div className="editor-arrange"><button className="secondary-button" onClick={() => onReorder(-1)}>↓ Backward</button><button className="secondary-button" onClick={() => onReorder(1)}>↑ Forward</button></div></div>
           <div className="editor-element-actions"><button className="secondary-button" onClick={onDuplicate}>⧉ Duplicate</button><button className="editor-delete-button" onClick={onDelete}>Delete</button></div>

@@ -6,13 +6,15 @@ import { AssetPanel } from "./components/AssetPanel";
 import { SceneCanvas } from "./components/SceneCanvas";
 import { PropertiesPanel } from "./components/PropertiesPanel";
 import { ProjectMenu } from "./components/ProjectMenu";
+import { BackgroundSettings } from "./components/BackgroundSettings";
 import { initialSceneElements } from "./data/initialScene";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, componentDefaults, isCockpitType } from "./types/scene";
 import { ASSET_BY_TYPE } from "./data/assets";
 import { downloadProject } from "./utils/exportScene";
 import { MAX_ELEMENTS_PER_SCENE, parseProject, replaceStartingElements, startingScene } from "./utils/projectDocument";
 import { createStarterProject, loadLocalDraft, LocalDraftConflictError, saveLocalDraft } from "./utils/localDraft";
-import type { ElementType, Project, SceneElement } from "./types/scene";
+import type { ElementType, Project, SceneBackground, SceneElement } from "./types/scene";
+import type { UploadedImage } from "./utils/imageUpload";
 
 type History = { past: Project[]; present: Project; future: Project[] };
 
@@ -28,6 +30,8 @@ function boundedElement(element: SceneElement, patch: Partial<SceneElement>): Sc
 function App() {
   const [recovery] = useState(() => loadLocalDraft());
   const [history, setHistory] = useState<History>(() => ({ past: [], present: recovery.project, future: [] }));
+  const historyRef = useRef(history);
+  const [documentSession, setDocumentSession] = useState(0);
   const [selectedId, setSelectedId] = useState("map-1");
   const [previewElements, setPreviewElements] = useState<SceneElement[] | null>(null);
   const [warning, setWarning] = useState(recovery.warning);
@@ -43,23 +47,42 @@ function App() {
   const saveStatus = !recovery.writable || localSavingPaused ? "Local recovery paused · export or save cloud" : saveResult.project === project ? saveResult.message : "Saving local draft…";
   const selectedElement = elements.find((element) => element.id === selectedId);
 
-  const commitProject = useCallback((transform: (current: Project) => Project) => {
-    setHistory((current) => {
+  const commitProject = useCallback((transform: (current: Project) => Project): boolean => {
+    try {
+      const current = historyRef.current;
       const next = transform(current.present);
-      if (JSON.stringify(next) === JSON.stringify(current.present)) return current;
-      return { past: [...current.past.slice(-49), current.present], present: next, future: [] };
-    });
+      parseProject(next);
+      if (JSON.stringify(next) === JSON.stringify(current.present)) return true;
+      const updated = { past: [...current.past.slice(-49), current.present], present: next, future: [] };
+      // Keep queued UI events and asynchronous uploads on the latest document without side effects in state updaters.
+      historyRef.current = updated;
+      setHistory(updated);
+      return true;
+    } catch (error) {
+      setWarning(error instanceof Error ? error.message : "This change could not be saved. Your design has not been changed.");
+      return false;
+    }
   }, []);
   const commitElements = useCallback((transform: (current: SceneElement[]) => SceneElement[]) => {
-    commitProject((current) => replaceStartingElements(current, transform(startingScene(current).elements)));
+    return commitProject((current) => replaceStartingElements(current, transform(startingScene(current).elements)));
   }, [commitProject]);
 
-  const undo = useCallback(() => setHistory((h) => h.past.length ? {
-    past: h.past.slice(0, -1), present: h.past[h.past.length - 1], future: [h.present, ...h.future],
-  } : h), []);
-  const redo = useCallback(() => setHistory((h) => h.future.length ? {
-    past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1),
-  } : h), []);
+  const undo = useCallback(() => {
+    const current = historyRef.current;
+    if (!current.past.length) return;
+    const updated = { past: current.past.slice(0, -1), present: current.past[current.past.length - 1], future: [current.present, ...current.future] };
+    setDocumentSession((value) => value + 1);
+    historyRef.current = updated;
+    setHistory(updated);
+  }, []);
+  const redo = useCallback(() => {
+    const current = historyRef.current;
+    if (!current.future.length) return;
+    const updated = { past: [...current.past, current.present], present: current.future[0], future: current.future.slice(1) };
+    setDocumentSession((value) => value + 1);
+    historyRef.current = updated;
+    setHistory(updated);
+  }, []);
 
   useEffect(() => {
     if (!recovery.writable) return;
@@ -99,8 +122,7 @@ function App() {
   const duplicateSelected = useCallback(() => {
     if (!selectedElement || preview || designedElements.length >= MAX_ELEMENTS_PER_SCENE) return;
     const copy = { ...structuredClone(selectedElement), id: crypto.randomUUID(), x: Math.min(CANVAS_WIDTH - selectedElement.width, selectedElement.x + 24), y: Math.min(CANVAS_HEIGHT - selectedElement.height, selectedElement.y + 24) };
-    commitElements((current) => current.length < MAX_ELEMENTS_PER_SCENE ? [...current, copy] : current);
-    setSelectedId(copy.id);
+    if (commitElements((current) => current.length < MAX_ELEMENTS_PER_SCENE ? [...current, copy] : current)) setSelectedId(copy.id);
   }, [commitElements, selectedElement, preview, designedElements.length]);
 
   useEffect(() => {
@@ -140,13 +162,49 @@ function App() {
       y: Math.max(0, Math.min(CANVAS_HEIGHT - height, y)),
       ...(asset.props ? { props: { ...asset.props } } : {}),
     };
-    commitElements((current) => current.length < MAX_ELEMENTS_PER_SCENE ? [...current, element] : current);
+    if (commitElements((current) => current.length < MAX_ELEMENTS_PER_SCENE ? [...current, element] : current)) setSelectedId(element.id);
+  }
+
+  function addUploadedImage(image: UploadedImage) {
+    if (preview) throw new Error("Leave preview before adding an image.");
+    const scale = Math.min(1, 420 / image.width, 300 / image.height);
+    const element: SceneElement = {
+      id: crypto.randomUUID(), type: "image", x: 80, y: 160,
+      width: Math.max(80, Math.round(image.width * scale)), height: Math.max(48, Math.round(image.height * scale)),
+      text: image.name.slice(0, 60), props: { src: image.src, name: image.name.slice(0, 160), fit: "contain" },
+    };
+    const saved = commitProject((current) => {
+      const scene = startingScene(current);
+      if (scene.elements.length >= MAX_ELEMENTS_PER_SCENE) throw new Error("This scene has reached the component limit. Remove a component before uploading another.");
+      return replaceStartingElements(current, [...scene.elements, element]);
+    });
+    if (!saved) throw new Error("The image was not added. Check the scene/project size limit and remove an image before trying again.");
     setSelectedId(element.id);
+  }
+
+  function replaceImage(id: string, image: UploadedImage) {
+    if (preview) throw new Error("Leave preview before replacing an image.");
+    const saved = commitProject((current) => {
+      const scene = startingScene(current);
+      if (!scene.elements.some((element) => element.id === id && element.type === "image")) throw new Error("The image component is no longer in this scene.");
+      return replaceStartingElements(current, scene.elements.map((element) => element.id === id ? {
+        ...element, props: { ...element.props, src: image.src, name: image.name.slice(0, 160) },
+      } : element));
+    });
+    if (!saved) throw new Error("The image was not replaced. The project may be full; remove another image and try again.");
+  }
+
+  function changeBackground(background: SceneBackground | undefined) {
+    if (preview) return false;
+    return commitProject((current) => ({ ...current, scenes: current.scenes.map((scene) => scene.id === current.startSceneId ? { ...scene, background } : scene) }));
   }
 
   function openProject(document: Project) {
     const validated = parseProject(document);
-    setHistory({ past: [], present: validated, future: [] });
+    const updated = { past: [], present: validated, future: [] };
+    historyRef.current = updated;
+    setHistory(updated);
+    setDocumentSession((value) => value + 1);
     setPreviewElements(null);
     setSelectedId("");
   }
@@ -157,9 +215,9 @@ function App() {
       {designedElements.length >= MAX_ELEMENTS_PER_SCENE && <div className="editor-recovery-warning" role="status">This scene has reached the {MAX_ELEMENTS_PER_SCENE}-component limit. Remove a component before adding or duplicating another.</div>}
       {warning && <div className="editor-recovery-warning" role="status"><span>{warning}</span><button onClick={() => setWarning(null)} aria-label="Dismiss recovery notice">×</button></div>}
       <section className="workspace">
-        <AssetPanel elements={elements} selectedId={selectedId} onSelect={setSelectedId} onAdd={addElement} preview={preview} onReset={() => { if (window.confirm("Replace this scene with the starter cockpit? You can undo this.")) { commitElements(() => structuredClone(initialSceneElements)); setSelectedId("map-1"); } }} />
-        <SceneCanvas elements={elements} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => updateElement(id, { x, y })} onUpdate={updateElement} onDropAsset={addElement} preview={preview} />
-        <PropertiesPanel selectedElement={selectedElement} onUpdate={updateElement} onDuplicate={duplicateSelected} onDelete={deleteSelected} onReorder={(direction) => {
+        <AssetPanel key={`${documentSession}-${preview}`} elements={elements} selectedId={selectedId} onSelect={setSelectedId} onAdd={addElement} onUploadImage={addUploadedImage} sceneSettings={<BackgroundSettings background={startingScene(project).background} onChange={changeBackground} disabled={preview} />} preview={preview} onReset={() => { if (window.confirm("Replace this scene with the starter cockpit? You can undo this.")) { commitElements(() => structuredClone(initialSceneElements)); setSelectedId("map-1"); } }} />
+        <SceneCanvas elements={elements} background={startingScene(project).background} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => updateElement(id, { x, y })} onUpdate={updateElement} onDropAsset={addElement} preview={preview} />
+        <PropertiesPanel key={documentSession} selectedElement={selectedElement} onReplaceImage={replaceImage} onUpdate={updateElement} onDuplicate={duplicateSelected} onDelete={deleteSelected} onReorder={(direction) => {
           commitElements((current) => {
             const index = current.findIndex((element) => element.id === selectedId);
             const nextIndex = index + direction;

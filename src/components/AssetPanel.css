@@ -1,4 +1,7 @@
 /* Keep library styles local to this panel, including responsive overrides. */
+.editor-asset-panel .editor-asset-upload {
+  margin-bottom: 20px;
+}
 .editor-asset-panel .editor-asset-library {
   max-height: min(48vh, 520px);
   min-height: 0;

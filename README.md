@@ -12,6 +12,16 @@ A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run de
 - Click the project name to rename it. **New** starts an unlinked local design. Up to 500 components per scene are supported.
 - **Restore starter scene** replaces the current layout after confirmation; this action can be undone.
 
+### Images and scene backgrounds
+
+- Use **Upload image** above the component library to add a photo/logo as a selectable, draggable, resizable image component. Alternatively, add an **Image** placeholder and upload through its inspector. The inspector also supports replacement, removal, and **Contain / Cover / Stretch** fitting. Transparent uploads retain transparency.
+- In the left panel, **Scene background** provides a native color picker and numeric **R / G / B** channels (0–255). Upload a background image, set its fit, and adjust the darkening slider for legibility. Removing the background image keeps its base color; **Restore default background** returns the original navy gradient.
+- Uploads accept PNG, JPEG, and WebP files up to **10 MiB**. Files are checked and re-encoded locally, resized to at most 1600 pixels on the longest edge, and further compressed/downscaled to at most 350,000 data-URL characters per image. SVG/GIF uploads are not supported. Uploaded metadata is not retained in the re-encoded raster.
+- Images are **embedded in the JSON document**, not stored in a Supabase Storage bucket or temporary blob URL. Guest editing works without network access; local recovery, explicit cloud saves, and exports retain image data and scene backgrounds. Saving to cloud therefore uploads the embedded image content as part of the project document. No new SQL migration or Storage configuration is needed for this implementation.
+- The existing total project limit of 2,000,000 serialized characters still applies. Changes that exceed it are rejected before replacing the current project; use fewer/smaller images. Browser local-storage quota may be lower than the space needed alongside other site data—watch the local-save status and use cloud save/export if necessary.
+- Image/background changes participate in undo/redo. Uploads can be canceled; switching projects, entering preview, navigating history, or explicitly removing/resetting the upload target invalidates pending uploads. Preview itself does not modify images/backgrounds.
+- The additive version-1 document extension is optional `scenes[].background = { color, image?, fit?, overlay? }`; image components store data in `props.src`, `props.name`, and `props.fit`. Older documents without these fields remain supported. Older app builds may reject the new background field; update clients together. Legacy non-string image sources/unsupported scalar fit values are normalized to empty/contain placeholders, while unsafe string sources remain rejected.
+
 ### Keyboard shortcuts
 
 | Action | Shortcut |
@@ -53,7 +63,7 @@ The app works locally without Supabase. Account services replace the old mock lo
 - The local editor checks for another tab's changed recovery value before writing and pauses on a conflict. This is a best-effort localStorage guard, not atomic multi-tab collaboration. Export or save cloud if warned; avoid editing the same local draft in multiple tabs.
 - Old `infotainment-scene-v2` element-array drafts are migrated without deleting the old entry. Unreadable project drafts are backed up verbatim before replacement; if that cannot be done safely, local recovery saving is paused instead.
 - Cloud documents use schema version 1, the current 1000 × 620 screen, and runtime validation. Unsupported future versions/resolutions are rejected rather than silently rewritten. Multiple scenes are retained, but this editor currently edits only the starting scene.
-- Saving sends the project document (including text, component props, and any embedded URLs) to your Supabase project. Cloud services require network access and are subject to your Supabase usage limits/billing. No live location, vehicle data, or uploads are transmitted by this implementation.
+- Saving sends the project document (including text, component props, and any embedded URLs) to your Supabase project. Cloud services require network access and are subject to your Supabase usage limits/billing. Embedded uploaded images are included when saving a project to the cloud. No live location or vehicle data is transmitted by this implementation.
 
 ### Verification checklist
 
@@ -65,7 +75,7 @@ Manually verify signup/confirmation, sign-in/out, password-reset links, cloud Sa
 
 - `npm run build`: TypeScript check and production bundle.
 - `npm run lint`: Oxlint.
-- `npm test`: Type-checked Node tests for project validation, recovery, legacy migration, and local draft conflicts.
+- `npm test`: Type-checked Node tests for project validation, recovery, legacy migration, local draft conflicts, image geometry/processing, and image/background persistence.
 
 Production hosting must serve `index.html` for `/editor` and `/login` routes. Use a Node release supported by the installed Vite/Supabase toolchain; a current Node LTS release is recommended.
 

@@ -2,6 +2,7 @@ import { Circle, Rect, Text } from "react-konva";
 
 import { ASSET_BY_TYPE, GROUP_ACCENT } from "../data/assets";
 import type { PropValue, SceneElement } from "../types/scene";
+import { SceneImage } from "./SceneImage";
 
 type ElementShapeProps = {
   element: SceneElement;
@@ -40,6 +41,25 @@ export function ElementShape({ element, isSelected }: ElementShapeProps) {
 
   const borderColor = outline ?? "#334155";
   const borderWidth = isSelected ? 3 : 1;
+
+  if (element.type === "image") {
+    const src = typeof props?.src === "string" ? props.src : "";
+    const fit = props?.fit === "cover" || props?.fit === "stretch" ? props.fit : "contain";
+    return (
+      <>
+        <Rect width={width} height={height} fill={src ? "rgba(0, 0, 0, 0.001)" : "#0b1120"} />
+        <SceneImage src={src} width={width} height={height} fit={fit} />
+        <Rect
+          width={width}
+          height={height}
+          stroke={src && !isSelected ? undefined : borderColor}
+          strokeWidth={borderWidth}
+          strokeScaleEnabled={false}
+          listening={false}
+        />
+      </>
+    );
+  }
 
   switch (asset.preview) {
     case "button":

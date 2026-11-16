@@ -5,13 +5,15 @@ import { Circle, Group, Layer, Line, Rect, Stage, Text, Transformer } from "reac
 import type { Group as KonvaGroup } from "konva/lib/Group";
 import type { Transformer as KonvaTransformer } from "konva/lib/shapes/Transformer";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type SceneElement } from "../types/scene";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type SceneBackground, type SceneElement } from "../types/scene";
 import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
 import { SceneWidget } from "./SceneWidgets";
 import { useAuth } from "../services/useAuth";
+import { SceneImage } from "./SceneImage";
 
 type SceneCanvasProps = {
   elements: SceneElement[];
+  background?: SceneBackground;
   selectedId: string;
   onSelect: (id: string) => void;
   onMove: (id: string, x: number, y: number) => void;
@@ -25,7 +27,7 @@ const clamp = (value: number, max: number) => Math.max(0, Math.min(Math.max(0, m
 // Keeping the upper bound on the grid prevents a last-pixel jump after a bounded drag.
 const snap = (value: number, max: number) => clamp(Math.round(value / 8) * 8, Math.floor(Math.max(0, max) / 8) * 8);
 
-export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, onDropAsset, preview }: SceneCanvasProps) {
+export function SceneCanvas({ elements, background, selectedId, onSelect, onMove, onUpdate, onDropAsset, preview }: SceneCanvasProps) {
   const { session, loading: authLoading } = useAuth();
   const greeting = authLoading ? "Good morning" : `Good morning, ${session?.name || "Guest"}`;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,11 +112,17 @@ export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, 
             onMouseDown={clearSelection} onTouchStart={clearSelection}>
             <Layer>
               <Group listening={false}>
-                <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} cornerRadius={12}
-                  fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 850, y: 620 }}
-                  fillLinearGradientColorStops={[0, "#13233b", 0.55, "#0b1628", 1, "#080f1e"]} />
-                <Circle x={780} y={240} radius={300} fillRadialGradientStartRadius={0} fillRadialGradientEndRadius={300}
-                  fillRadialGradientColorStops={[0, "#24509a18", 1, "#24509a00"]} />
+                {background ? <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} cornerRadius={12} fill={background.color} /> : <>
+                  <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} cornerRadius={12}
+                    fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 850, y: 620 }}
+                    fillLinearGradientColorStops={[0, "#13233b", 0.55, "#0b1628", 1, "#080f1e"]} />
+                  <Circle x={780} y={240} radius={300} fillRadialGradientStartRadius={0} fillRadialGradientEndRadius={300}
+                    fillRadialGradientColorStops={[0, "#24509a18", 1, "#24509a00"]} />
+                </>}
+                {background?.image && <>
+                  <SceneImage src={background.image} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fit={background.fit ?? "cover"} />
+                  <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="#000000" opacity={background.overlay ?? 0.25} listening={false} />
+                </>}
                 <Text x={30} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill="#7d91af" />
                 <Circle x={750} y={30} radius={3} fill="#78dbbb" />
                 <Text x={762} y={25} text="CONNECTED" fontFamily={font} fontSize={8} fill="#92a6c1" />

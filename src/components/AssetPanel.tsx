@@ -1,5 +1,8 @@
+import type { ReactNode } from "react";
 import type { ElementType, SceneElement } from "../types/scene";
 import { ASSETS, ASSET_BY_TYPE, ASSET_DRAG_MIME, ASSET_GROUPS, GROUP_ACCENT } from "../data/assets";
+import type { UploadedImage } from "../utils/imageUpload";
+import { ImageUpload } from "./ImageUpload";
 import "./AssetPanel.css";
 
 type AssetPanelProps = {
@@ -7,15 +10,18 @@ type AssetPanelProps = {
   selectedId: string;
   onSelect: (id: string) => void;
   onAdd: (type: ElementType) => void;
+  onUploadImage: (image: UploadedImage) => void | Promise<void>;
+  sceneSettings?: ReactNode;
   onReset: () => void;
   preview: boolean;
 };
 
-export function AssetPanel({ elements, selectedId, onSelect, onAdd, onReset, preview }: AssetPanelProps) {
+export function AssetPanel({ elements, selectedId, onSelect, onAdd, onUploadImage, sceneSettings, onReset, preview }: AssetPanelProps) {
   return (
     <aside className="panel asset-panel editor-asset-panel">
       <div className="panel-heading"><div><p className="eyebrow">Your building blocks</p><h2>Components</h2></div><span className="asset-count">{String(ASSETS.length).padStart(2, "0")}</span></div>
       <p className="panel-description">Small pieces. A whole new experience.<br />Click or drag a component to add it.</p>
+      <div className="editor-asset-upload"><ImageUpload onUpload={onUploadImage} disabled={preview} /></div>
       <div className="editor-asset-library" role="region" aria-label="Component library" tabIndex={0}>
         {ASSET_GROUPS.map((group) => (
           <section className="asset-group" key={group}>
@@ -47,6 +53,7 @@ export function AssetPanel({ elements, selectedId, onSelect, onAdd, onReset, pre
           </section>
         ))}
       </div>
+      {sceneSettings}
       <div className="editor-layers">
         <div className="panel-heading"><h3>Scene layers</h3><span>{elements.length}</span></div>
         <p className="editor-microcopy">Front to back · select to inspect</p>

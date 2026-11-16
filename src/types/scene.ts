@@ -32,7 +32,14 @@ export type SceneElement = {
   action?: NavigateAction;
 };
 
-export type Scene = { id: string; name: string; elements: SceneElement[] };
+export type SceneBackground = {
+  color: string;
+  image?: string;
+  fit?: "contain" | "cover" | "stretch";
+  overlay?: number;
+};
+
+export type Scene = { id: string; name: string; elements: SceneElement[]; background?: SceneBackground };
 export type Project = {
   schemaVersion: 1;
   name: string;

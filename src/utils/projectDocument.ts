@@ -2,11 +2,19 @@ import { z } from "zod";
 import { isAssetType } from "../data/assets";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../types/scene";
 import type { ElementType, Project } from "../types/scene";
+import { isSafeImageSource, MAX_IMAGE_SOURCE_LENGTH } from "./imageUpload";
 
 export const MAX_ELEMENTS_PER_SCENE = 500;
 
 const identifier = z.string().min(1).max(200);
-const scalar = z.union([z.string().max(16_384), z.number(), z.boolean()]);
+const scalar = z.union([z.string().max(MAX_IMAGE_SOURCE_LENGTH), z.number(), z.boolean()]);
+const imageSource = z.string().max(MAX_IMAGE_SOURCE_LENGTH).refine(isSafeImageSource, "Image source must be an embedded PNG, JPEG, WebP, or a valid HTTPS URL");
+const backgroundSchema = z.object({
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Background color must be a six-digit hex color"),
+  image: imageSource.optional(),
+  fit: z.enum(["contain", "cover", "stretch"]).optional(),
+  overlay: z.number().min(0).max(0.85).optional(),
+}).strict();
 const elementSchema = z.object({
   id: identifier,
   type: z.custom<ElementType>((value) => typeof value === "string" && isAssetType(value), "Unknown component type"),
@@ -24,10 +32,33 @@ const elementSchema = z.object({
     transition: z.object({ type: z.string().min(1).max(100), durationMs: z.number().min(0).max(60_000) }).strict(),
   }).strict().optional(),
 }).strict().superRefine((element, context) => {
+  for (const [key, value] of Object.entries(element.props ?? {})) {
+    if (element.type === "image" && key === "src") {
+      if (!imageSource.safeParse(value).success) context.addIssue({ code: "custom", message: "Image source is invalid or too large" });
+    } else if (typeof value === "string" && value.length > 16_384) {
+      context.addIssue({ code: "custom", message: "Component property exceeds the supported string limit" });
+    }
+  }
+  if (element.type === "image" && element.props?.fit !== undefined && !["contain", "cover", "stretch"].includes(String(element.props.fit))) {
+    context.addIssue({ code: "custom", message: "Unsupported image fit" });
+  }
   if (element.x + element.width > CANVAS_WIDTH || element.y + element.height > CANVAS_HEIGHT) {
     context.addIssue({ code: "custom", message: "Component extends beyond the supported screen" });
   }
 });
+
+const persistedElementSchema = z.preprocess((input) => {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const element = input as Record<string, unknown>;
+  if (element.type !== "image" || !element.props || typeof element.props !== "object" || Array.isArray(element.props)) return input;
+  const props = { ...element.props } as Record<string, unknown>;
+  // Earlier v1 placeholders accepted arbitrary scalar props without interpreting them.
+  if (typeof props.src === "boolean" || typeof props.src === "number") props.src = "";
+  if ((typeof props.fit === "string" && props.fit.length <= 16_384) || typeof props.fit === "boolean" || typeof props.fit === "number") {
+    if (!["contain", "cover", "stretch"].includes(String(props.fit))) props.fit = "contain";
+  }
+  return { ...element, props };
+}, elementSchema);
 
 export const projectSchema = z.object({
   schemaVersion: z.literal(1),
@@ -37,7 +68,8 @@ export const projectSchema = z.object({
   scenes: z.array(z.object({
     id: identifier,
     name: z.string().min(1).max(100),
-    elements: z.array(elementSchema).max(MAX_ELEMENTS_PER_SCENE),
+    elements: z.array(persistedElementSchema).max(MAX_ELEMENTS_PER_SCENE),
+    background: backgroundSchema.optional(),
   }).strict()).min(1).max(30),
 }).strict().superRefine((project, context) => {
   const sceneIds = new Set(project.scenes.map((scene) => scene.id));
@@ -61,7 +93,7 @@ export function parseProject(input: unknown): Project {
   if (!result.success) {
     throw new Error(`Invalid or unsupported project: ${result.error.issues[0]?.message ?? "Invalid document"}. This editor supports schema version 1 and a ${CANVAS_WIDTH} × ${CANVAS_HEIGHT} screen.`);
   }
-  if (JSON.stringify(result.data).length > 2_000_000) throw new Error("Project exceeds the 2 MB document limit.");
+  if (JSON.stringify(result.data).length > 2_000_000) throw new Error("Project exceeds the 2 MB document limit. Remove an image or use a smaller one before adding more content.");
   return result.data;
 }
 
