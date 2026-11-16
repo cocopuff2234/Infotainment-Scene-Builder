@@ -8,6 +8,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type SceneElement } from "../types/scene";
 import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
 import { SceneWidget } from "./SceneWidgets";
+import { useAuth } from "../services/useAuth";
 
 type SceneCanvasProps = {
   elements: SceneElement[];
@@ -25,6 +26,8 @@ const clamp = (value: number, max: number) => Math.max(0, Math.min(Math.max(0, m
 const snap = (value: number, max: number) => clamp(Math.round(value / 8) * 8, Math.floor(Math.max(0, max) / 8) * 8);
 
 export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, onDropAsset, preview }: SceneCanvasProps) {
+  const { session, loading: authLoading } = useAuth();
+  const greeting = authLoading ? "Good morning" : `Good morning, ${session?.name || "Guest"}`;
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<KonvaStage>(null);
   const elementRefs = useRef(new Map<string, KonvaGroup>());
@@ -112,15 +115,13 @@ export function SceneCanvas({ elements, selectedId, onSelect, onMove, onUpdate, 
                   fillLinearGradientColorStops={[0, "#13233b", 0.55, "#0b1628", 1, "#080f1e"]} />
                 <Circle x={780} y={240} radius={300} fillRadialGradientStartRadius={0} fillRadialGradientEndRadius={300}
                   fillRadialGradientColorStops={[0, "#24509a18", 1, "#24509a00"]} />
-                <Text x={30} y={23} text="A U R A" fontFamily={font} fontSize={13} fontStyle="bold" fill="#d6e6ff" />
-                <Line points={[113, 22, 113, 38]} stroke="#35445d" />
-                <Text x={129} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill="#7d91af" />
+                <Text x={30} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill="#7d91af" />
                 <Circle x={750} y={30} radius={3} fill="#78dbbb" />
                 <Text x={762} y={25} text="CONNECTED" fontFamily={font} fontSize={8} fill="#92a6c1" />
                 <Text x={860} y={23} text="22°  ☀" fontFamily={font} fontSize={12} fill="#b4c4da" />
                 <Text x={932} y={23} text="09:41" fontFamily={font} fontSize={13} fontStyle="bold" fill="#e7efff" />
                 <Line points={[28, 52, 972, 52]} stroke="#25344d" strokeWidth={1} />
-                <Text x={30} y={76} text="Good morning, Alex" fontFamily={font} fontSize={26} fontStyle="bold" fill="#eef4ff" />
+                <Text x={30} y={76} width={940} height={32} wrap="none" ellipsis text={greeting} fontFamily={font} fontSize={26} fontStyle="bold" fill="#eef4ff" />
                 <Text x={31} y={112} text="A little more connected. A little further ahead." fontFamily={font} fontSize={11} fill="#8194b2" />
                 <Line points={[28, 572, 972, 572]} stroke="#25344d" />
                 <Rect x={30} y={584} width={76} height={26} cornerRadius={8} fill="#223b61" />
