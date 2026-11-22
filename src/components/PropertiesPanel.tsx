@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ASSET_BY_TYPE } from "../data/assets";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../types/scene";
-import type { Scene, SceneElement } from "../types/scene";
+import type { Scene, SceneElement, SceneTransitionType } from "../types/scene";
 import type { UploadedImage } from "../utils/imageUpload";
 import { ImageUpload } from "./ImageUpload";
 
@@ -27,6 +27,18 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
   }
   function booleanProp(key: string, fallback: boolean) {
     return typeof element?.props?.[key] === "boolean" ? element.props[key] : fallback;
+  }
+  function updateTransition(type: SceneTransitionType) {
+    if (!element?.action) return;
+    onUpdate(element.id, {
+      action: {
+        ...element.action,
+        transition: {
+          type,
+          durationMs: type === "instant" ? 0 : Math.max(50, element.action.transition.durationMs || 180),
+        },
+      },
+    });
   }
   function numericField(key: "x" | "y" | "width" | "height", label: string) {
     if (!element) return null;
@@ -69,15 +81,17 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
                   </select>
                 </label>
                 <label>Transition
-                  <select value={element.action.transition.type === "fade" ? "fade" : "instant"} onChange={(event) => onUpdate(element.id, { action: { ...element.action!, transition: event.target.value === "fade" ? { type: "fade", durationMs: element.action!.transition.durationMs || 180 } : { type: "instant", durationMs: 0 } } })}>
+                  <select value={element.action.transition.type} onChange={(event) => updateTransition(event.target.value as SceneTransitionType)}>
                     <option value="instant">Instant</option>
                     <option value="fade">Fade</option>
+                    <option value="slide-left">Slide left</option>
+                    <option value="slide-right">Slide right</option>
                   </select>
                 </label>
-                {element.action.transition.type === "fade" && <label>Fade duration (ms)<input type="number" min={0} max={5000} step={50} value={element.action.transition.durationMs} onChange={(event) => {
-                  if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) onUpdate(element.id, { action: { ...element.action!, transition: { type: "fade", durationMs: Math.max(0, Math.min(5000, event.target.valueAsNumber)) } } });
+                {element.action.transition.type !== "instant" && <label>Transition duration (ms)<input type="number" min={50} max={5000} step={50} value={element.action.transition.durationMs} onChange={(event) => {
+                  if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) onUpdate(element.id, { action: { ...element.action!, transition: { ...element.action!.transition, durationMs: Math.max(50, Math.min(5000, event.target.valueAsNumber)) } } });
                 }} /></label>}
-                <p className="editor-action-note">Preview switches scenes immediately. Transition metadata is exported for the device runtime.</p>
+                <p className="editor-action-note">Preview switches scenes immediately. The selected transition and duration are exported for the PySide6/QML head-unit runtime.</p>
               </> : <p className="editor-action-note">{scenes.length < 2 ? "Add another scene before assigning navigation." : "Choose Navigate to scene to turn this area into a screen link."}</p>}
             </div>
           )}
@@ -98,7 +112,7 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
           )}
           {element.type === "map" && (
             <div className="editor-property-section map-properties">
-              <h3>Map MVP <span>RASTER</span></h3>
+              <h3>Map MVP <span>QT LOCATION</span></h3>
               <div className="property-grid">
                 <label>Center latitude<input type="number" min={-90} max={90} step={0.0001} value={numericProp("centerLat", 37.3382)} onChange={(event) => {
                   if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) updateProp("centerLat", Math.max(-90, Math.min(90, event.target.valueAsNumber)));
@@ -110,9 +124,9 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
                   if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) updateProp("zoom", Math.max(1, Math.min(19, Math.round(event.target.valueAsNumber))));
                 }} /></label>
               </div>
-              <label>Tile provider
+              <label>Runtime map provider
                 <select value={String(element.props?.tileProvider ?? "osm")} onChange={(event) => updateProp("tileProvider", event.target.value)}>
-                  <option value="osm">OpenStreetMap raster</option>
+                  <option value="osm">OpenStreetMap / Qt OSM plugin</option>
                 </select>
               </label>
               <label>Map style
@@ -124,7 +138,47 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
               <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("followLocation", true)} onChange={(event) => updateProp("followLocation", event.target.checked)} />Follow current location</label>
               <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("allowPan", true)} onChange={(event) => updateProp("allowPan", event.target.checked)} />Allow pan</label>
               <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("allowZoom", true)} onChange={(event) => updateProp("allowZoom", event.target.checked)} />Allow zoom</label>
-              <p className="editor-map-note">◇ The editor keeps the lightweight stylized map preview. These settings are exported for the real Leaflet/raster map runtime later, so the Raspberry Pi side can consume the same scene JSON.</p>
+              <p className="editor-map-note">◇ Edit mode keeps the lightweight stylized map and browser Preview uses Leaflet. The same provider, center, zoom, gesture, and location settings are exported so the Raspberry Pi can render them with Qt Location/QML.</p>
+            </div>
+          )}
+          {["music", "music-player", "now-playing"].includes(element.type) && (
+            <div className="editor-property-section media-runtime-properties">
+              <h3>Head-unit media <span>QML</span></h3>
+              <label>Media file (relative path)
+                <input
+                  value={typeof element.props?.mediaPath === "string" ? element.props.mediaPath : ""}
+                  maxLength={512}
+                  placeholder="media/song.mp3"
+                  onChange={(event) => updateProp("mediaPath", event.target.value.replaceAll("\\", "/"))}
+                />
+              </label>
+              <label>Artist
+                <input
+                  value={typeof element.props?.artist === "string" ? element.props.artist : ""}
+                  maxLength={120}
+                  placeholder="Artist name"
+                  onChange={(event) => updateProp("artist", event.target.value)}
+                />
+              </label>
+              {element.type !== "now-playing" && <>
+                <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("autoplay", false)} onChange={(event) => updateProp("autoplay", event.target.checked)} />Autoplay on the head unit</label>
+                <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("loop", false)} onChange={(event) => updateProp("loop", event.target.checked)} />Loop media</label>
+              </>}
+              <p className="editor-map-note">Use a path relative to the imported scene package, such as <code>media/song.mp3</code>. The Pi runtime will resolve the file locally instead of depending on a browser URL.</p>
+            </div>
+          )}
+          {element.type === "custom" && (
+            <div className="editor-property-section custom-runtime-properties">
+              <h3>Head-unit custom asset <span>QML</span></h3>
+              <label>Asset file (relative path)
+                <input
+                  value={typeof element.props?.assetFile === "string" ? element.props.assetFile : ""}
+                  maxLength={512}
+                  placeholder="assets/custom-widget.png"
+                  onChange={(event) => updateProp("assetFile", event.target.value.replaceAll("\\", "/"))}
+                />
+              </label>
+              <p className="editor-map-note">Copy this file with the exported scene and keep the same relative path on the Raspberry Pi. Missing custom assets should render as a safe placeholder.</p>
             </div>
           )}
           <div className="editor-property-section"><h3>Arrange</h3><div className="editor-arrange"><button className="secondary-button" onClick={() => onReorder(-1)}>↓ Backward</button><button className="secondary-button" onClick={() => onReorder(1)}>↑ Forward</button></div></div>
