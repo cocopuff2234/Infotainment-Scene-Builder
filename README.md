@@ -8,7 +8,7 @@ A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run de
 - Select a component on the canvas or in the layers list. Drag to arrange with 8 px snapping; drag corner handles to scale proportionally or side handles to stretch width/height. Resizing stays within the canvas with a minimum size of 80 × 48 px, updates inspector dimensions on release, and creates one undoable change per gesture. Edit labels, positions, dimensions, and values in the inspector.
 - Duplicate, delete, or move components forward/backward in the layer stack. Undo/redo retains up to 50 changes.
 - Use the scene bar above the canvas to add, switch, rename, delete, and choose the project start scene. Each scene keeps its own components and background, while undo/redo continues to operate on the whole project document.
-- Select a **Button** and use **On press** in the inspector to assign **Navigate to scene**. The action stores the target scene plus transition metadata in the exported JSON. Removing a target scene automatically clears links that would otherwise become invalid.
+- Select a **Button** or **Hotspot** and use **On press** in the inspector to assign **Navigate to scene**. Hotspots are dashed overlays while editing and completely invisible in Preview, so they can turn any visual region into a tappable action area. The action stores the target scene plus transition metadata in the exported JSON. Removing a target scene automatically clears links that would otherwise become invalid.
 - Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, enable drive mode, and follow scene-navigation buttons. Preview changes are temporary: leaving preview restores the designed defaults without changing undo history or saved documents. Scene changes happen in-memory without a page reload; transition metadata is exported for the target runtime. These controls are visual simulations: the vector map is offline, and the media player does not play audio.
 - The whole project saves automatically as a local recovery draft when browser storage is available. **Save cloud** explicitly saves to your account; **Open** manages cloud projects. Cloud autosave is not enabled yet. **Export JSON** downloads the same versioned project document (`schemaVersion`, `screen`, `startSceneId`, and `scenes`), including component properties, navigation actions, and designed volume/playback settings. There is no JSON import UI yet.
 - Click the project name to rename it. **New** starts an unlinked local design. Up to 30 scenes and 500 components per scene are supported.
@@ -16,7 +16,7 @@ A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run de
 
 ### Scene navigation format
 
-Buttons can link scenes without changing schema version 1. A navigation button is exported with an optional `action` object like this:
+Buttons and invisible Hotspots can link scenes without changing schema version 1. A navigation button is exported with an optional `action` object like this:
 
 ```json
 {

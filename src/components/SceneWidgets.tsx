@@ -222,6 +222,17 @@ export function SceneWidget(props: WidgetProps) {
     case "music-player": return <MusicWidget {...props} />;
     case "volume": return <VolumeWidget {...props} />;
     case "climate": return <ClimateWidget {...props} />;
+    case "hotspot":
+      return preview ? (
+        <Rect width={element.width} height={element.height} fill="rgba(0, 0, 0, 0.001)" />
+      ) : (
+        <Group>
+          <Rect width={element.width} height={element.height} fill="rgba(96, 165, 250, 0.08)" cornerRadius={8}
+            stroke="#60a5fa" strokeWidth={1.5} dash={[8, 5]} />
+          <Label x={8} y={Math.max(8, element.height / 2 - 6)} width={Math.max(0, element.width - 16)}
+            text={element.text || "Hotspot"} size={11} color="#93c5fd" align="center" />
+        </Group>
+      );
     case "button": {
       const active = element.active ?? false;
       const toggle = () => { if (preview && !element.action) onUpdate(element.id, { active: !active }); };

@@ -18,6 +18,7 @@ export type PreviewKind =
   | "button"
   | "text"
   | "panel"
+  | "hotspot"
   | "icon"
   | "placeholder"
   | "slider"
@@ -110,6 +111,17 @@ export const ASSETS: AssetDefinition[] = [
     width: 300,
     height: 200,
     text: "",
+  },
+  {
+    type: "hotspot",
+    label: "Hotspot",
+    description: "Invisible action area",
+    group: "Basic UI",
+    icon: "⌗",
+    preview: "hotspot",
+    width: 180,
+    height: 64,
+    text: "Hotspot",
   },
 
   // ---- Controls ----
