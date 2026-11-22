@@ -8,15 +8,16 @@ A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run de
 - Select a component on the canvas or in the layers list. Drag to arrange with 8 px snapping; drag corner handles to scale proportionally or side handles to stretch width/height. Resizing stays within the canvas with a minimum size of 80 × 48 px, updates inspector dimensions on release, and creates one undoable change per gesture. Edit labels, positions, dimensions, and values in the inspector.
 - Duplicate, delete, or move components forward/backward in the layer stack. Undo/redo retains up to 50 changes.
 - Use the scene bar above the canvas to add, switch, rename, delete, and choose the project start scene. Each scene keeps its own components and background, while undo/redo continues to operate on the whole project document.
-- Select a **Button** or **Hotspot** and use **On press** in the inspector to assign **Navigate to scene**. Hotspots are dashed overlays while editing and completely invisible in Preview, so they can turn any visual region into a tappable action area. The action stores the target scene plus transition metadata in the exported JSON. Removing a target scene automatically clears links that would otherwise become invalid.
-- Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, enable drive mode, and follow scene-navigation buttons. Preview changes are temporary: leaving preview restores the designed defaults without changing undo history or saved documents. Scene changes happen in-memory without a page reload; transition metadata is exported for the target runtime. These controls are visual simulations: the vector map is offline, and the media player does not play audio.
+- Select a **Button** or **Empty** component and use **On press** in the inspector to assign **Navigate to scene**. Empty components are dashed overlays while editing and completely invisible in Preview, so they can turn any visual region into a tappable action area. The underlying version-1 element type remains `hotspot` for compatibility. The action stores the target scene plus transition metadata in the exported JSON. Removing a target scene automatically clears links that would otherwise become invalid.
+- Select a **Map** to configure MVP runtime metadata: center latitude/longitude, zoom, current-location/follow behavior, pan/zoom permissions, and the raster tile provider/style. Edit mode intentionally keeps the lightweight stylized Konva map. **Preview** overlays a real Leaflet map using OpenStreetMap raster tiles, so pan/zoom and the configured starting view can be tested before implementing the device runtime.
+- Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, enable drive mode, follow scene-navigation buttons, and use the live map overlay. Preview changes are temporary: leaving preview restores the designed defaults without changing undo history or saved documents. Scene changes happen in-memory without a page reload; transition and map metadata are exported for the target runtime. Media playback and live GPS input remain simulations/placeholders.
 - The whole project saves automatically as a local recovery draft when browser storage is available. **Save cloud** explicitly saves to your account; **Open** manages cloud projects. Cloud autosave is not enabled yet. **Export JSON** downloads the same versioned project document (`schemaVersion`, `screen`, `startSceneId`, and `scenes`), including component properties, navigation actions, and designed volume/playback settings. There is no JSON import UI yet.
 - Click the project name to rename it. **New** starts an unlinked local design. Up to 30 scenes and 500 components per scene are supported.
 - **Restore starter scene** replaces the current layout after confirmation; this action can be undone.
 
 ### Scene navigation format
 
-Buttons and invisible Hotspots can link scenes without changing schema version 1. A navigation button is exported with an optional `action` object like this:
+Buttons and invisible **Empty** overlays can link scenes without changing schema version 1. Empty overlays still export with `"type": "hotspot"` so existing version-1 files remain compatible. A navigation button is exported with an optional `action` object like this:
 
 ```json
 {
@@ -32,6 +33,30 @@ Buttons and invisible Hotspots can link scenes without changing schema version 1
 ```
 
 `targetSceneId` must match a scene in the same project. The Raspberry Pi/runtime side can load `startSceneId`, render that scene, and replace the active scene when a pressed element has a `navigate` action. The browser preview follows the same target links without reloading the app.
+
+### Map MVP format
+
+New map components export lightweight runtime configuration in `props` while the editor continues to draw the existing stylized map:
+
+```json
+{
+  "type": "map",
+  "props": {
+    "source": "gps.location",
+    "centerLat": 37.3382,
+    "centerLng": -121.8863,
+    "zoom": 14,
+    "showCurrentLocation": true,
+    "followLocation": true,
+    "allowPan": true,
+    "allowZoom": true,
+    "tileProvider": "osm",
+    "mapStyle": "standard"
+  }
+}
+```
+
+Latitude/longitude and zoom are validated before save/export. Existing version-1 map elements that do not have these optional properties continue to load with editor defaults. Browser Preview lazily loads Leaflet 1.9.4 from jsDelivr and raster tiles from OpenStreetMap, so the real-map preview requires network access; edit mode and project editing do not.
 
 ### Images and scene backgrounds
 

@@ -46,6 +46,10 @@ function Control({ x, y, text, enabled, onPress, primary = false, size = 32 }: {
 }
 
 function MapWidget({ element }: WidgetProps) {
+  const centerLat = typeof element.props?.centerLat === "number" ? element.props.centerLat : 37.3382;
+  const centerLng = typeof element.props?.centerLng === "number" ? element.props.centerLng : -121.8863;
+  const zoom = typeof element.props?.zoom === "number" ? element.props.zoom : 14;
+  const showCurrentLocation = element.props?.showCurrentLocation !== false;
   const streets = [
     [-30, 65, 570, 65], [-30, 135, 570, 135], [-30, 215, 570, 215], [-30, 285, 570, 285],
     [62, -20, 62, 350], [160, -20, 160, 350], [270, -20, 270, 350], [385, -20, 385, 350], [482, -20, 482, 350],
@@ -68,8 +72,10 @@ function MapWidget({ element }: WidgetProps) {
       <Line points={[160, 252, 160, 215, 270, 215, 270, 135, 385, 135, 385, 85]} stroke="#172c54" strokeWidth={16} lineCap="round" lineJoin="round" />
       <Line points={[160, 252, 160, 215, 270, 215, 270, 135, 385, 135, 385, 85]} stroke={blue} strokeWidth={6} lineCap="round" lineJoin="round" shadowColor={blue} shadowBlur={12} shadowOpacity={0.5} />
       <Circle x={385} y={85} radius={10} fill="#d8e8ff" stroke={blue} strokeWidth={4} />
-      <Circle x={160} y={251} radius={24} fill="#5795ff" opacity={0.14} />
-      <Line points={[160, 238, 170, 261, 160, 257, 150, 261]} closed fill="#eef6ff" stroke={blue} strokeWidth={2} lineJoin="round" />
+      {showCurrentLocation && <>
+        <Circle x={160} y={251} radius={24} fill="#5795ff" opacity={0.14} />
+        <Line points={[160, 238, 170, 261, 160, 257, 150, 261]} closed fill="#eef6ff" stroke={blue} strokeWidth={2} lineJoin="round" />
+      </>}
       <Rect x={18} y={18} width={282} height={60} cornerRadius={12} fill="#101c30" stroke="#344b69" />
       <Label x={33} y={32} text="↱" size={30} color="#83afff" />
       <Label x={75} y={30} text="In 400 m, turn right" size={11} color={muted} />
@@ -79,8 +85,9 @@ function MapWidget({ element }: WidgetProps) {
       <Rect x={18} y={278} width={504} height={36} cornerRadius={10} fill="#0c182a" stroke="#2c405c" />
       <Label x={32} y={290} text="12 min" size={13} bold color="#8eb8ff" />
       <Label x={95} y={291} text="4.8 km  ·  Arrival 09:53" size={11} color="#a5b5cc" />
-      <Circle x={449} y={296} radius={3} fill="#64d5b0" />
-      <Label x={459} y={291} text="OFFLINE" size={8} color={muted} />
+      <Label x={275} y={291} width={194} align="right" text={`Z${zoom} · ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`} size={8} color={muted} />
+      <Circle x={477} y={296} radius={3} fill="#64d5b0" />
+      <Label x={487} y={291} text="PREVIEW" size={8} color={muted} />
     </Group>
   </Group>;
 }
@@ -230,7 +237,7 @@ export function SceneWidget(props: WidgetProps) {
           <Rect width={element.width} height={element.height} fill="rgba(96, 165, 250, 0.08)" cornerRadius={8}
             stroke="#60a5fa" strokeWidth={1.5} dash={[8, 5]} />
           <Label x={8} y={Math.max(8, element.height / 2 - 6)} width={Math.max(0, element.width - 16)}
-            text={element.text || "Hotspot"} size={11} color="#93c5fd" align="center" />
+            text={element.text || "Empty"} size={11} color="#93c5fd" align="center" />
         </Group>
       );
     case "button": {

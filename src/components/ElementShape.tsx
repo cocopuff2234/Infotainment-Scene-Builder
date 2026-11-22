@@ -143,7 +143,7 @@ export function ElementShape({ element, isSelected }: ElementShapeProps) {
           <Text
             width={width}
             height={height}
-            text={text || "Hotspot"}
+            text={text || "Empty"}
             align="center"
             verticalAlign="middle"
             fontSize={12}

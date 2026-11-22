@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ASSET_BY_TYPE } from "../data/assets";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../types/scene";
 import type { Scene, SceneElement } from "../types/scene";
 import type { UploadedImage } from "../utils/imageUpload";
@@ -18,6 +19,15 @@ type PropertiesPanelProps = {
 
 export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceImage, onDuplicate, onDelete, onReorder, scenes, currentSceneId, preview }: PropertiesPanelProps) {
   const [imageUploadEpoch, setImageUploadEpoch] = useState(0);
+  function updateProp(key: string, value: string | number | boolean) {
+    if (element) onUpdate(element.id, { props: { ...element.props, [key]: value } });
+  }
+  function numericProp(key: string, fallback: number) {
+    return typeof element?.props?.[key] === "number" ? element.props[key] : fallback;
+  }
+  function booleanProp(key: string, fallback: boolean) {
+    return typeof element?.props?.[key] === "boolean" ? element.props[key] : fallback;
+  }
   function numericField(key: "x" | "y" | "width" | "height", label: string) {
     if (!element) return null;
     const max = key === "width" ? CANVAS_WIDTH - element.x : key === "height" ? CANVAS_HEIGHT - element.y : key === "x" ? CANVAS_WIDTH - element.width : CANVAS_HEIGHT - element.height;
@@ -31,7 +41,7 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
       <div className="panel-heading"><div><p className="eyebrow">Make it yours</p><h2>Inspector</h2></div><span className="editor-inspector-icon" aria-hidden="true">⌖</span></div>
       {preview ? <div className="editor-preview-info"><span aria-hidden="true">▷</span><h3>Take it for a spin.</h3><p>Try controls and follow any scene-navigation buttons to test the full UI flow.</p><p>These are visual simulations, not connected vehicle controls or audio playback.</p><small>Leave preview to continue designing.</small></div> : element ? (
         <div className="properties-content">
-          <div className="selected-preview"><span className="preview-dot" /><div><strong>{element.text || "Untitled component"}</strong><small>{element.type} component</small></div></div>
+          <div className="selected-preview"><span className="preview-dot" /><div><strong>{element.text || "Untitled component"}</strong><small>{ASSET_BY_TYPE[element.type]?.label ?? element.type} component</small></div></div>
           <label>Label<input value={element.text} maxLength={60} onChange={(event) => onUpdate(element.id, { text: event.target.value })} /></label>
           <div className="editor-property-section"><h3>Position & size <span>PX</span></h3><div className="property-grid">{numericField("x", "X position")}{numericField("y", "Y position")}{numericField("width", "Width")}{numericField("height", "Height")}</div></div>
           {(element.type === "volume" || element.type === "climate") && <div className="editor-property-section"><h3>{element.type === "volume" ? "Volume level" : "Temperature"}<span>{element.value ?? (element.type === "volume" ? 65 : 21)}{element.type === "volume" ? "%" : "°C"}</span></h3><label className="editor-range-label"><span className="sr-only">{element.type === "volume" ? "Volume" : "Temperature"}</span><input type="range" min={element.type === "volume" ? 0 : 16} max={element.type === "volume" ? 100 : 30} step={element.type === "volume" ? 1 : 0.5} value={element.value ?? (element.type === "volume" ? 65 : 21)} onChange={(event) => onUpdate(element.id, { value: event.target.valueAsNumber })} /></label></div>}
@@ -86,7 +96,37 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
               <button type="button" className="secondary-button" disabled={!element.props?.src || preview} onClick={() => { setImageUploadEpoch((value) => value + 1); onUpdate(element.id, { props: { ...element.props, src: "", name: "" } }); }}>Remove image</button>
             </div>
           )}
-          {element.type === "map" && <p className="editor-map-note">◇ Offline vector map. Edit the label to change the destination street. No API key needed.</p>}
+          {element.type === "map" && (
+            <div className="editor-property-section map-properties">
+              <h3>Map MVP <span>RASTER</span></h3>
+              <div className="property-grid">
+                <label>Center latitude<input type="number" min={-90} max={90} step={0.0001} value={numericProp("centerLat", 37.3382)} onChange={(event) => {
+                  if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) updateProp("centerLat", Math.max(-90, Math.min(90, event.target.valueAsNumber)));
+                }} /></label>
+                <label>Center longitude<input type="number" min={-180} max={180} step={0.0001} value={numericProp("centerLng", -121.8863)} onChange={(event) => {
+                  if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) updateProp("centerLng", Math.max(-180, Math.min(180, event.target.valueAsNumber)));
+                }} /></label>
+                <label>Zoom<input type="number" min={1} max={19} step={1} value={numericProp("zoom", 14)} onChange={(event) => {
+                  if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) updateProp("zoom", Math.max(1, Math.min(19, Math.round(event.target.valueAsNumber))));
+                }} /></label>
+              </div>
+              <label>Tile provider
+                <select value={String(element.props?.tileProvider ?? "osm")} onChange={(event) => updateProp("tileProvider", event.target.value)}>
+                  <option value="osm">OpenStreetMap raster</option>
+                </select>
+              </label>
+              <label>Map style
+                <select value={String(element.props?.mapStyle ?? "standard")} onChange={(event) => updateProp("mapStyle", event.target.value)}>
+                  <option value="standard">Standard</option>
+                </select>
+              </label>
+              <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("showCurrentLocation", true)} onChange={(event) => updateProp("showCurrentLocation", event.target.checked)} />Show current location</label>
+              <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("followLocation", true)} onChange={(event) => updateProp("followLocation", event.target.checked)} />Follow current location</label>
+              <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("allowPan", true)} onChange={(event) => updateProp("allowPan", event.target.checked)} />Allow pan</label>
+              <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("allowZoom", true)} onChange={(event) => updateProp("allowZoom", event.target.checked)} />Allow zoom</label>
+              <p className="editor-map-note">◇ The editor keeps the lightweight stylized map preview. These settings are exported for the real Leaflet/raster map runtime later, so the Raspberry Pi side can consume the same scene JSON.</p>
+            </div>
+          )}
           <div className="editor-property-section"><h3>Arrange</h3><div className="editor-arrange"><button className="secondary-button" onClick={() => onReorder(-1)}>↓ Backward</button><button className="secondary-button" onClick={() => onReorder(1)}>↑ Forward</button></div></div>
           <div className="editor-element-actions"><button className="secondary-button" onClick={onDuplicate}>⧉ Duplicate</button><button className="editor-delete-button" onClick={onDelete}>Delete</button></div>
           <div className="editor-shortcuts"><p>THE LITTLE SHORTCUTS</p><div><span>Nudge element</span><kbd>↑ ↓ ← →</kbd></div><div><span>Move by 8 px</span><kbd>Shift + ↑</kbd></div><div><span>Duplicate</span><kbd>⌘/Ctrl D</kbd></div><div><span>Undo</span><kbd>⌘/Ctrl Z</kbd></div><div><span>Delete</span><kbd>⌫</kbd></div></div>

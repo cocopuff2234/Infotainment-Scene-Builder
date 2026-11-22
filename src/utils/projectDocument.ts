@@ -43,6 +43,24 @@ const elementSchema = z.object({
   if (element.type === "image" && element.props?.fit !== undefined && !["contain", "cover", "stretch"].includes(String(element.props.fit))) {
     context.addIssue({ code: "custom", message: "Unsupported image fit" });
   }
+  if (element.type === "map") {
+    const props = element.props ?? {};
+    const validateMapNumber = (key: string, min: number, max: number, integer = false) => {
+      const value = props[key];
+      if (value === undefined) return;
+      if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+        context.addIssue({ code: "custom", message: `Map ${key} is invalid` });
+      }
+    };
+    validateMapNumber("centerLat", -90, 90);
+    validateMapNumber("centerLng", -180, 180);
+    validateMapNumber("zoom", 1, 19, true);
+    for (const key of ["showCurrentLocation", "followLocation", "allowPan", "allowZoom"]) {
+      if (props[key] !== undefined && typeof props[key] !== "boolean") context.addIssue({ code: "custom", message: `Map ${key} must be true or false` });
+    }
+    if (props.tileProvider !== undefined && props.tileProvider !== "osm") context.addIssue({ code: "custom", message: "Unsupported map tile provider" });
+    if (props.mapStyle !== undefined && props.mapStyle !== "standard") context.addIssue({ code: "custom", message: "Unsupported map style" });
+  }
   if (element.x + element.width > CANVAS_WIDTH || element.y + element.height > CANVAS_HEIGHT) {
     context.addIssue({ code: "custom", message: "Component extends beyond the supported screen" });
   }
