@@ -224,7 +224,7 @@ export function SceneWidget(props: WidgetProps) {
     case "climate": return <ClimateWidget {...props} />;
     case "button": {
       const active = element.active ?? false;
-      const toggle = () => { if (preview) onUpdate(element.id, { active: !active }); };
+      const toggle = () => { if (preview && !element.action) onUpdate(element.id, { active: !active }); };
       return <Group scaleX={element.width / 210} scaleY={element.height / 64} onClick={toggle} onTap={toggle}>
         <Rect width={210} height={64} cornerRadius={14} stroke={active ? "#6aa5ff" : "#344a67"}
           fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 210, y: 64 }}

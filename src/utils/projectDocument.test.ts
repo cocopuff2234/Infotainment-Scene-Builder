@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ASSETS } from "../data/assets";
 import { createStarterProject } from "./localDraft";
-import { parseProject, replaceStartingElements, startingScene } from "./projectDocument";
+import { parseProject, removeScene, replaceSceneElements, replaceStartingElements, startingScene } from "./projectDocument";
 
 test("starter project validates without losing component states", () => {
   const document = createStarterProject();
@@ -31,6 +31,30 @@ test("document edits preserve other scenes, metadata, and navigation actions", (
   assert.equal(updated.name, document.name);
   assert.deepEqual(parseProject(updated).scenes[0].elements[0].action, document.scenes[0].elements[0].action);
   assert.equal(document.scenes[0].elements.length, 5);
+});
+
+
+test("scene helpers edit a selected scene and clean navigation links when a scene is removed", () => {
+  const document = createStarterProject();
+  document.scenes.push({ id: "second", name: "Second scene", elements: [{ id: "return", type: "button", x: 20, y: 20, width: 210, height: 64, text: "Return", action: { type: "navigate", targetSceneId: document.startSceneId, transition: { type: "fade", durationMs: 180 } } }] });
+  document.scenes[0].elements[0].action = { type: "navigate", targetSceneId: "second", transition: { type: "fade", durationMs: 180 } };
+
+  const edited = replaceSceneElements(document, "second", []);
+  assert.equal(edited.scenes[0], document.scenes[0]);
+  assert.equal(edited.scenes[1].elements.length, 0);
+
+  const removed = removeScene(document, "second");
+  assert.equal(removed.scenes.length, 1);
+  assert.equal(removed.scenes[0].elements[0].action, undefined);
+  assert.deepEqual(parseProject(removed), removed);
+});
+
+test("removing the starting scene promotes a remaining scene", () => {
+  const document = createStarterProject();
+  document.scenes.push({ id: "second", name: "Second scene", elements: [] });
+  const removed = removeScene(document, document.startSceneId);
+  assert.equal(removed.startSceneId, "second");
+  assert.equal(startingScene(removed).id, "second");
 });
 
 test("unsupported schema versions and resolutions are rejected rather than silently rewritten", () => {

@@ -5,6 +5,7 @@ import type { ElementType, Project } from "../types/scene";
 import { isSafeImageSource, MAX_IMAGE_SOURCE_LENGTH } from "./imageUpload";
 
 export const MAX_ELEMENTS_PER_SCENE = 500;
+export const MAX_SCENES = 30;
 
 const identifier = z.string().min(1).max(200);
 const scalar = z.union([z.string().max(MAX_IMAGE_SOURCE_LENGTH), z.number(), z.boolean()]);
@@ -70,7 +71,7 @@ export const projectSchema = z.object({
     name: z.string().min(1).max(100),
     elements: z.array(persistedElementSchema).max(MAX_ELEMENTS_PER_SCENE),
     background: backgroundSchema.optional(),
-  }).strict()).min(1).max(30),
+  }).strict()).min(1).max(MAX_SCENES),
 }).strict().superRefine((project, context) => {
   const sceneIds = new Set(project.scenes.map((scene) => scene.id));
   if (sceneIds.size !== project.scenes.length) context.addIssue({ code: "custom", message: "Scene IDs must be unique" });
@@ -97,11 +98,35 @@ export function parseProject(input: unknown): Project {
   return result.data;
 }
 
+export function sceneById(project: Project, sceneId: string) {
+  return project.scenes.find((scene) => scene.id === sceneId);
+}
+
 export function startingScene(project: Project) {
   // Validated project documents always have a valid startSceneId.
-  return project.scenes.find((scene) => scene.id === project.startSceneId)!;
+  return sceneById(project, project.startSceneId)!;
+}
+
+export function replaceSceneElements(project: Project, sceneId: string, elements: Project["scenes"][number]["elements"]): Project {
+  if (!sceneById(project, sceneId)) throw new Error("Scene does not exist");
+  return { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, elements } : scene) };
 }
 
 export function replaceStartingElements(project: Project, elements: Project["scenes"][number]["elements"]): Project {
-  return { ...project, scenes: project.scenes.map((scene) => scene.id === project.startSceneId ? { ...scene, elements } : scene) };
+  return replaceSceneElements(project, project.startSceneId, elements);
+}
+
+export function removeScene(project: Project, sceneId: string): Project {
+  if (project.scenes.length <= 1) throw new Error("A project needs at least one scene");
+  if (!sceneById(project, sceneId)) throw new Error("Scene does not exist");
+  const scenes = project.scenes
+    .filter((scene) => scene.id !== sceneId)
+    .map((scene) => ({
+      ...scene,
+      elements: scene.elements.map((element) => element.action?.targetSceneId === sceneId
+        ? { ...element, action: undefined }
+        : element),
+    }));
+  const startSceneId = project.startSceneId === sceneId ? scenes[0].id : project.startSceneId;
+  return { ...project, startSceneId, scenes };
 }
