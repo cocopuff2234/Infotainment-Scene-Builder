@@ -15,7 +15,8 @@ Every newly created or re-saved project is normalized to this profile:
     "contractVersion": 1,
     "scaleMode": "fit",
     "elementOrder": "array-z-order",
-    "assetBase": "."
+    "assetBase": ".",
+    "theme": "dark"
   }
 }
 ```
@@ -29,7 +30,27 @@ it parses/saves them so old drafts and cloud projects remain usable.
 - `elementOrder: "array-z-order"`: elements appear from back to front in array order. Later elements
   are on top and should receive pointer/touch input before obscured elements.
 - `assetBase: "."`: relative runtime assets such as audio files resolve from the directory containing
-  the imported scene JSON (or the root of a future packaged scene directory).
+  the imported scene JSON/package root.
+- `theme`: `dark` or `light`. Older contract-v1 projects without it default to `dark`. Light mode uses
+  a warm off-white default scene background and light runtime surfaces; explicit scene/background colors still win.
+
+
+## Transfer package
+
+The editor's primary MVP export is a `.infotainment.zip` file. It contains at minimum:
+
+```text
+project.json
+package-manifest.json
+PACKAGE_README.txt
+media/README.txt
+assets/README.txt
+```
+
+`package-manifest.json` lists every relative `mediaPath` or `assetFile`. Files attached through the media/custom inspector are embedded directly at those paths for that browser session; references that were only typed remain listed as missing so they can be added before Pi installation. The editor never invents placeholder media bytes.
+The Pi installer validates the ZIP, rejects path traversal/symlinks, verifies `project.json`, and refuses
+installation when a referenced local runtime file is missing. Raw JSON export remains available for
+development/debugging.
 
 ## Startup and scene selection
 

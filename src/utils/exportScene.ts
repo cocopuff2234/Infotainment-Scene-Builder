@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RUNTIME_THEME,
   PROJECT_NAME,
   RUNTIME_ASSET_BASE,
   RUNTIME_CONTRACT_VERSION,
@@ -42,6 +43,7 @@ export function buildProject(elements: SceneElement[]): Project {
       scaleMode: RUNTIME_SCALE_MODE,
       elementOrder: RUNTIME_ELEMENT_ORDER,
       assetBase: RUNTIME_ASSET_BASE,
+      theme: DEFAULT_RUNTIME_THEME,
     },
     startSceneId: SCENE_ID,
     scenes: [

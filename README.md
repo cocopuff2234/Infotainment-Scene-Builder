@@ -11,7 +11,7 @@ A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run de
 - Select a **Button** or **Empty** component and use **On press** in the inspector to assign **Navigate to scene**. Empty components are dashed overlays while editing and completely invisible in Preview, so they can turn any visual region into a tappable action area. The underlying version-1 element type remains `hotspot` for compatibility. The action stores the target scene plus transition metadata in the exported JSON. Removing a target scene automatically clears links that would otherwise become invalid.
 - Select a **Map** to configure MVP runtime metadata: center latitude/longitude, zoom, current-location/follow behavior, pan/zoom permissions, and the map provider/style. Edit mode intentionally keeps the lightweight stylized Konva map. **Preview** overlays a real Leaflet/OpenStreetMap map for browser testing; the same exported settings map to Qt Location on the PySide6/QML Raspberry Pi runtime.
 - Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, enable drive mode, follow scene-navigation buttons, and use the live map overlay. Preview changes are temporary: leaving preview restores the designed defaults without changing undo history or saved documents. Scene changes happen in-memory without a page reload; transition and map metadata are exported for the target runtime. Media playback and live GPS input remain simulations/placeholders.
-- The whole project saves automatically as a local recovery draft when browser storage is available. **Save cloud** explicitly saves to your account; **Open** manages cloud projects. Cloud autosave is not enabled yet. **Export JSON** downloads the same versioned project document (`schemaVersion`, `runtime`, `screen`, `startSceneId`, and `scenes`), including component properties, navigation actions, and designed volume/playback settings. There is no JSON import UI yet.
+- The whole project saves automatically as a local recovery draft when browser storage is available. **Save cloud** explicitly saves to your account; **Open** manages cloud projects. Cloud autosave is not enabled yet. **Export package** downloads a `.infotainment.zip` containing `project.json`, a package manifest, and asset/media placement instructions. **JSON** remains available for debugging, and **Import JSON** can reopen a previously exported project. The Pi-ready badge reports portability/network notes before transfer.
 - Click the project name to rename it. **New** starts an unlinked local design. Up to 30 scenes and 500 components per scene are supported.
 - **Restore starter scene** replaces the current layout after confirmation; this action can be undone.
 
@@ -45,12 +45,13 @@ New and re-saved version-1 documents carry an explicit runtime profile:
     "contractVersion": 1,
     "scaleMode": "fit",
     "elementOrder": "array-z-order",
-    "assetBase": "."
+    "assetBase": ".",
+    "theme": "dark"
   }
 }
 ```
 
-Older version-1 documents without this field are normalized when opened, so existing local/cloud projects remain compatible. `fit` tells the Pi to preserve the fixed 1000 × 620 design aspect ratio, array order is the back-to-front QML z-order, and relative assets resolve from the imported scene directory. See [`docs/PI_RUNTIME_CONTRACT.md`](docs/PI_RUNTIME_CONTRACT.md) for the complete Scene Builder → PySide6/QML handoff.
+Older version-1 documents without this field are normalized when opened, so existing local/cloud projects remain compatible. `fit` tells the Pi to preserve the fixed 1000 × 620 design aspect ratio, array order is the back-to-front QML z-order, relative assets resolve from the imported scene directory, and `theme` selects dark or warm off-white light mode. The top-bar Light/Dark control changes both the editor presentation and exported runtime preference. See [`docs/PI_RUNTIME_CONTRACT.md`](docs/PI_RUNTIME_CONTRACT.md) for the complete Scene Builder → PySide6/QML handoff.
 
 ### Map MVP format
 
@@ -78,9 +79,9 @@ Latitude/longitude and zoom are validated before save/export. Existing version-1
 
 ### Head-unit media references
 
-Media components expose a **Head-unit media** section in the inspector. `mediaPath` is a path relative to the imported scene directory (for example `media/song.mp3`), plus optional artist/autoplay/loop settings. Absolute paths, URL schemes, and parent-directory traversal are rejected so a project can be moved from a development computer to USB storage and then to the Pi without rewriting paths. The initial PySide6 runtime can resolve these references into Qt Multimedia.
+Media components expose a **Head-unit media** section in the inspector. You can attach a local audio file for the current export session, which automatically sets a portable `mediaPath`, or type a path relative to the imported scene directory (for example `media/song.mp3`). The package exporter embeds attached files at that path; unattached references are listed by the Pi-ready report and manifest. Absolute paths, URL schemes, and parent-directory traversal are rejected so a project can be moved from a development computer to USB storage and then to the Pi without rewriting paths. The initial PySide6 runtime can resolve these references into Qt Multimedia.
 
-**Custom Asset** also exposes a relative `assetFile` path (for example `assets/custom-widget.png`). It uses the same portability checks, matching the project plan where custom asset files are transferred alongside the scene file and resolved by the head unit.
+**Custom Asset** also exposes a relative `assetFile` path (for example `assets/custom-widget.png`) plus an image attachment picker. It uses the same portability checks and package embedding rules, matching the project plan where custom asset files travel with the scene and are resolved by the head unit.
 
 ### Images and scene backgrounds
 

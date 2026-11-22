@@ -9,6 +9,7 @@ type PropertiesPanelProps = {
   selectedElement: SceneElement | undefined;
   onUpdate: (id: string, patch: Partial<SceneElement>) => void;
   onReplaceImage: (id: string, image: UploadedImage) => void | Promise<void>;
+  onAttachRuntimeFile: (id: string, kind: "mediaPath" | "assetFile", file: File) => void | Promise<void>;
   onDuplicate: () => void;
   onDelete: () => void;
   onReorder: (direction: number) => void;
@@ -17,7 +18,7 @@ type PropertiesPanelProps = {
   preview: boolean;
 };
 
-export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceImage, onDuplicate, onDelete, onReorder, scenes, currentSceneId, preview }: PropertiesPanelProps) {
+export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceImage, onAttachRuntimeFile, onDuplicate, onDelete, onReorder, scenes, currentSceneId, preview }: PropertiesPanelProps) {
   const [imageUploadEpoch, setImageUploadEpoch] = useState(0);
   function updateProp(key: string, value: string | number | boolean) {
     if (element) onUpdate(element.id, { props: { ...element.props, [key]: value } });
@@ -152,6 +153,13 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
                   onChange={(event) => updateProp("mediaPath", event.target.value.replaceAll("\\", "/"))}
                 />
               </label>
+              <label>Attach local audio to package
+                <input type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void onAttachRuntimeFile(element.id, "mediaPath", file);
+                }} />
+              </label>
               <label>Artist
                 <input
                   value={typeof element.props?.artist === "string" ? element.props.artist : ""}
@@ -164,7 +172,7 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
                 <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("autoplay", false)} onChange={(event) => updateProp("autoplay", event.target.checked)} />Autoplay on the head unit</label>
                 <label className="editor-checkbox-label"><input type="checkbox" checked={booleanProp("loop", false)} onChange={(event) => updateProp("loop", event.target.checked)} />Loop media</label>
               </>}
-              <p className="editor-map-note">Use a path relative to the imported scene package, such as <code>media/song.mp3</code>. The Pi runtime will resolve the file locally instead of depending on a browser URL.</p>
+              <p className="editor-map-note">Attach an audio file here for a self-contained export, or enter a relative path such as <code>media/song.mp3</code> and add it to the ZIP later. Attachments are kept for this browser session only.</p>
             </div>
           )}
           {element.type === "custom" && (
@@ -178,7 +186,14 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
                   onChange={(event) => updateProp("assetFile", event.target.value.replaceAll("\\", "/"))}
                 />
               </label>
-              <p className="editor-map-note">Copy this file with the exported scene and keep the same relative path on the Raspberry Pi. Missing custom assets should render as a safe placeholder.</p>
+              <label>Attach custom image to package
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void onAttachRuntimeFile(element.id, "assetFile", file);
+                }} />
+              </label>
+              <p className="editor-map-note">Attach an image here for a self-contained export, or keep the relative path and add the file to the ZIP later. Attachments are kept for this browser session only.</p>
             </div>
           )}
           <div className="editor-property-section"><h3>Arrange</h3><div className="editor-arrange"><button className="secondary-button" onClick={() => onReorder(-1)}>↓ Backward</button><button className="secondary-button" onClick={() => onReorder(1)}>↑ Forward</button></div></div>

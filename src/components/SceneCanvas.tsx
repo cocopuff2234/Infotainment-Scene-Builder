@@ -5,7 +5,7 @@ import { Circle, Group, Layer, Line, Rect, Stage, Text, Transformer } from "reac
 import type { Group as KonvaGroup } from "konva/lib/Group";
 import type { Transformer as KonvaTransformer } from "konva/lib/shapes/Transformer";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type Scene, type SceneBackground, type SceneElement } from "../types/scene";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type RuntimeTheme, type Scene, type SceneBackground, type SceneElement } from "../types/scene";
 import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
 import { SceneWidget } from "./SceneWidgets";
 import { LeafletMapOverlay } from "./LeafletMapOverlay";
@@ -30,6 +30,7 @@ type SceneCanvasProps = {
   onSetStartScene: () => void;
   onNavigate: (targetSceneId: string) => void;
   canAddScene: boolean;
+  theme: RuntimeTheme;
   preview: boolean;
 };
 
@@ -38,7 +39,7 @@ const clamp = (value: number, max: number) => Math.max(0, Math.min(Math.max(0, m
 // Keeping the upper bound on the grid prevents a last-pixel jump after a bounded drag.
 const snap = (value: number, max: number) => clamp(Math.round(value / 8) * 8, Math.floor(Math.max(0, max) / 8) * 8);
 
-export function SceneCanvas({ elements, background, selectedId, onSelect, onMove, onUpdate, onDropAsset, scenes, currentSceneId, startSceneId, onSceneChange, onAddScene, onRenameScene, onDeleteScene, onSetStartScene, onNavigate, canAddScene, preview }: SceneCanvasProps) {
+export function SceneCanvas({ elements, background, selectedId, onSelect, onMove, onUpdate, onDropAsset, scenes, currentSceneId, startSceneId, onSceneChange, onAddScene, onRenameScene, onDeleteScene, onSetStartScene, onNavigate, canAddScene, theme, preview }: SceneCanvasProps) {
   const { session, loading: authLoading } = useAuth();
   const greeting = authLoading ? "Good morning" : `Good morning, ${session?.name || "Guest"}`;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,6 +48,14 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
   const transformerRef = useRef<KonvaTransformer>(null);
   const [availableWidth, setAvailableWidth] = useState(CANVAS_WIDTH + 18);
   const scale = Math.max(0.001, Math.min(1, (availableWidth - 18) / CANVAS_WIDTH));
+  const light = theme === "light";
+  const palette = light ? {
+    stage: "#f5f2eb", stage2: "#ebe6dc", chrome: "#253247", muted: "#64748b", line: "#cbd5e1",
+    title: "#172033", nav: "#475569", navActive: "#1d4ed8", navFill: "#dbeafe", connected: "#17856f",
+  } : {
+    stage: "#13233b", stage2: "#080f1e", chrome: "#eef4ff", muted: "#8194b2", line: "#25344d",
+    title: "#eef4ff", nav: "#7186a6", navActive: "#9dc3ff", navFill: "#223b61", connected: "#78dbbb",
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -130,7 +139,7 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
       </div>
 
       <div className="canvas-viewport" ref={containerRef} style={{ width: "100%", maxWidth: CANVAS_WIDTH + 18, margin: "0 auto" }}>
-        <div className="canvas-wrap" onDragOver={handleDragOver} onDrop={handleDrop} style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: "#080f1d", boxShadow: "0 24px 70px #00000035", position: "relative" }}>
+        <div className="canvas-wrap" onDragOver={handleDragOver} onDrop={handleDrop} style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: light ? "#ddd8ce" : "#080f1d", boxShadow: "0 24px 70px #00000035", position: "relative" }}>
           <Stage ref={stageRef} width={CANVAS_WIDTH * scale} height={CANVAS_HEIGHT * scale}
             scaleX={scale} scaleY={scale}
             onMouseDown={clearSelection} onTouchStart={clearSelection}>
@@ -139,7 +148,7 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
                 {background ? <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} cornerRadius={12} fill={background.color} /> : <>
                   <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} cornerRadius={12}
                     fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 850, y: 620 }}
-                    fillLinearGradientColorStops={[0, "#13233b", 0.55, "#0b1628", 1, "#080f1e"]} />
+                    fillLinearGradientColorStops={[0, palette.stage, 0.55, light ? "#f1ede5" : "#0b1628", 1, palette.stage2]} />
                   <Circle x={780} y={240} radius={300} fillRadialGradientStartRadius={0} fillRadialGradientEndRadius={300}
                     fillRadialGradientColorStops={[0, "#24509a18", 1, "#24509a00"]} />
                 </>}
@@ -147,21 +156,21 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
                   <SceneImage src={background.image} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fit={background.fit ?? "cover"} />
                   <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="#000000" opacity={background.overlay ?? 0.25} listening={false} />
                 </>}
-                <Text x={30} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill="#7d91af" />
-                <Circle x={750} y={30} radius={3} fill="#78dbbb" />
-                <Text x={762} y={25} text="CONNECTED" fontFamily={font} fontSize={8} fill="#92a6c1" />
-                <Text x={860} y={23} text="22°  ☀" fontFamily={font} fontSize={12} fill="#b4c4da" />
-                <Text x={932} y={23} text="09:41" fontFamily={font} fontSize={13} fontStyle="bold" fill="#e7efff" />
-                <Line points={[28, 52, 972, 52]} stroke="#25344d" strokeWidth={1} />
-                <Text x={30} y={76} width={940} height={32} wrap="none" ellipsis text={greeting} fontFamily={font} fontSize={26} fontStyle="bold" fill="#eef4ff" />
-                <Text x={31} y={112} text="A little more connected. A little further ahead." fontFamily={font} fontSize={11} fill="#8194b2" />
-                <Line points={[28, 572, 972, 572]} stroke="#25344d" />
-                <Rect x={30} y={584} width={76} height={26} cornerRadius={8} fill="#223b61" />
-                <Text x={30} y={592} width={76} align="center" text="⌂  Home" fontFamily={font} fontSize={10} fill="#9dc3ff" />
-                <Text x={131} y={592} text="◇  Navigate" fontFamily={font} fontSize={10} fill="#7186a6" />
-                <Text x={244} y={592} text="♫  Media" fontFamily={font} fontSize={10} fill="#7186a6" />
-                <Text x={340} y={592} text="✣  Climate" fontFamily={font} fontSize={10} fill="#7186a6" />
-                <Text x={811} y={592} width={160} align="right" text="P  ·  All systems ready" fontFamily={font} fontSize={10} fill="#7186a6" />
+                <Text x={30} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill={palette.muted} />
+                <Circle x={750} y={30} radius={3} fill={palette.connected} />
+                <Text x={762} y={25} text="CONNECTED" fontFamily={font} fontSize={8} fill={palette.muted} />
+                <Text x={860} y={23} text="22°  ☀" fontFamily={font} fontSize={12} fill={palette.chrome} />
+                <Text x={932} y={23} text="09:41" fontFamily={font} fontSize={13} fontStyle="bold" fill={palette.title} />
+                <Line points={[28, 52, 972, 52]} stroke={palette.line} strokeWidth={1} />
+                <Text x={30} y={76} width={940} height={32} wrap="none" ellipsis text={greeting} fontFamily={font} fontSize={26} fontStyle="bold" fill={palette.title} />
+                <Text x={31} y={112} text="A little more connected. A little further ahead." fontFamily={font} fontSize={11} fill={palette.muted} />
+                <Line points={[28, 572, 972, 572]} stroke={palette.line} />
+                <Rect x={30} y={584} width={76} height={26} cornerRadius={8} fill={palette.navFill} />
+                <Text x={30} y={592} width={76} align="center" text="⌂  Home" fontFamily={font} fontSize={10} fill={palette.navActive} />
+                <Text x={131} y={592} text="◇  Navigate" fontFamily={font} fontSize={10} fill={palette.nav} />
+                <Text x={244} y={592} text="♫  Media" fontFamily={font} fontSize={10} fill={palette.nav} />
+                <Text x={340} y={592} text="✣  Climate" fontFamily={font} fontSize={10} fill={palette.nav} />
+                <Text x={811} y={592} width={160} align="right" text="P  ·  All systems ready" fontFamily={font} fontSize={10} fill={palette.nav} />
               </Group>
 
               {elements.map((element) => {
