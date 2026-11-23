@@ -46,9 +46,6 @@ function Control({ x, y, text, enabled, onPress, primary = false, size = 32 }: {
 }
 
 function MapWidget({ element }: WidgetProps) {
-  const centerLat = typeof element.props?.centerLat === "number" ? element.props.centerLat : 37.3382;
-  const centerLng = typeof element.props?.centerLng === "number" ? element.props.centerLng : -121.8863;
-  const zoom = typeof element.props?.zoom === "number" ? element.props.zoom : 14;
   const showCurrentLocation = element.props?.showCurrentLocation !== false;
   const streets = [
     [-30, 65, 570, 65], [-30, 135, 570, 135], [-30, 215, 570, 215], [-30, 285, 570, 285],
@@ -76,38 +73,25 @@ function MapWidget({ element }: WidgetProps) {
         <Circle x={160} y={251} radius={24} fill="#5795ff" opacity={0.14} />
         <Line points={[160, 238, 170, 261, 160, 257, 150, 261]} closed fill="#eef6ff" stroke={blue} strokeWidth={2} lineJoin="round" />
       </>}
-      <Rect x={18} y={18} width={282} height={60} cornerRadius={12} fill="#101c30" stroke="#344b69" />
-      <Label x={33} y={32} text="↱" size={30} color="#83afff" />
-      <Label x={75} y={30} text="In 400 m, turn right" size={11} color={muted} />
-      <Label x={75} y={48} text={element.text} size={16} bold />
-      <Circle x={503} y={39} radius={17} fill="#122037" stroke="#344b69" />
-      <Label x={490} y={32} width={26} text="N ↑" size={11} align="center" />
-      <Rect x={18} y={278} width={504} height={36} cornerRadius={10} fill="#0c182a" stroke="#2c405c" />
-      <Label x={32} y={290} text="12 min" size={13} bold color="#8eb8ff" />
-      <Label x={95} y={291} text="4.8 km  ·  Arrival 09:53" size={11} color="#a5b5cc" />
-      <Label x={275} y={291} width={194} align="right" text={`Z${zoom} · ${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}`} size={8} color={muted} />
-      <Circle x={477} y={296} radius={3} fill="#64d5b0" />
-      <Label x={487} y={291} text="PREVIEW" size={8} color={muted} />
     </Group>
   </Group>;
 }
 
 function MusicWidget({ element, preview, onUpdate }: WidgetProps) {
   const playing = element.active ?? false;
+  const artist = typeof element.props?.artist === "string" ? element.props.artist : "";
   return <Group scaleX={element.width / 340} scaleY={element.height / 210}>
     <Card width={340} height={210} />
     <Group listening={false}>
-      <Label x={20} y={19} text="NOW PLAYING" size={9} color={muted} bold />
-      <Label x={281} y={18} text="♫" size={16} color={blue} />
+      <Label x={292} y={18} text="♫" size={16} color={blue} />
       <Rect x={20} y={44} width={82} height={82} cornerRadius={12}
         fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 82, y: 82 }}
         fillLinearGradientColorStops={[0, "#3e66a4", 0.5, "#a08db9", 1, "#dca994"]} />
       <Circle x={77} y={66} radius={13} fill="#ffe0c0" opacity={0.8} />
       <Line points={[20, 108, 44, 73, 66, 103, 82, 88, 102, 110, 102, 126, 20, 126]} closed fill="#273758" />
       <Line points={[20, 115, 48, 100, 67, 113, 86, 102, 102, 116, 102, 126, 20, 126]} closed fill="#17273f" />
-      <Label x={115} y={53} width={206} text={element.text} size={19} bold />
-      <Label x={115} y={81} text="ODESZA · A Moment Apart" size={11} color={muted} />
-      <Label x={115} y={105} text="YOUR DAILY SOUNDTRACK" size={8} color="#5c7aa3" />
+      <Label x={115} y={49} width={206} text={element.text} size={19} bold />
+      <Label x={115} y={82} text={artist} size={11} color={muted} />
       <Line points={[22, 146, 318, 146]} stroke="#2b3b54" strokeWidth={3} lineCap="round" />
       <Line points={[22, 146, 138, 146]} stroke={blue} strokeWidth={3} lineCap="round" />
       <Circle x={138} y={146} radius={4} fill="#b4d1ff" />
@@ -191,8 +175,6 @@ function VolumeWidget({ element, preview, onUpdate }: WidgetProps) {
         fillLinearGradientColorStops={[0, "#344760", 0.45, "#1d2d45", 1, "#0c182a"]} shadowColor="#000" shadowBlur={12} shadowOpacity={0.4} shadowOffsetY={4} />
       <Circle x={100 + Math.cos(radians) * 29} y={86 + Math.sin(radians) * 29} radius={2.5} fill="#a8ccff" />
       <Label x={63} y={73} width={74} align="center" text={String(value)} size={27} bold />
-      <Label x={63} y={102} width={74} align="center" text="VOLUME" size={7} color={muted} />
-      <Label x={69} y={145} width={62} text={`${value}%`} size={11} color={muted} align="center" />
     </Group>
     <Circle ref={knobRef} x={100} y={86} radius={54} fill="rgba(0,0,0,0)" listening={preview}
       onPointerDown={startRotation} onPointerMove={moveRotation}
@@ -209,9 +191,7 @@ function ClimateWidget({ element, preview, onUpdate }: WidgetProps) {
   return <Group scaleX={element.width / 340} scaleY={element.height / 96}>
     <Card width={340} height={96} />
     <Label x={20} y={17} text={element.text.toUpperCase()} size={9} color={muted} bold />
-    <Label x={20} y={43} text="✣" size={28} color="#8bb7ff" />
-    <Label x={58} y={47} text="AUTO" size={10} color="#8bb7ff" />
-    <Label x={59} y={63} text="Comfort on" size={8} color={muted} />
+    <Label x={20} y={45} text="✣" size={26} color="#8bb7ff" />
     <Label x={145} y={41} width={95} text={`${value}°`} size={34} align="center" />
     <Control x={123} y={59} size={29} text="−" enabled={preview} onPress={() => onUpdate(element.id, { value: Math.max(16, value - 0.5) })} />
     <Control x={263} y={59} size={29} text="+" enabled={preview} onPress={() => onUpdate(element.id, { value: Math.min(30, value + 0.5) })} />
@@ -245,13 +225,8 @@ export function SceneWidget(props: WidgetProps) {
       const toggle = () => { if (preview && !element.action) onUpdate(element.id, { active: !active }); };
       return <Group scaleX={element.width / 210} scaleY={element.height / 64} onClick={toggle} onTap={toggle}>
         <Rect width={210} height={64} cornerRadius={14} stroke={active ? "#6aa5ff" : "#344a67"}
-          fillLinearGradientStartPoint={{ x: 0, y: 0 }} fillLinearGradientEndPoint={{ x: 210, y: 64 }}
-          fillLinearGradientColorStops={active ? [0, "#285bb1", 1, "#194080"] : [0, "#1b2d47", 1, "#13223a"]} />
-        <Label x={17} y={22} text="ϟ" size={23} color={active ? "#c6dfff" : blue} />
-        <Label x={44} y={19} width={119} text={element.text} size={13} bold />
-        <Label x={44} y={38} text={active ? "ENABLED" : "STANDBY"} size={7} color={active ? "#c1d9ff" : muted} />
-        <Rect x={169} y={25} width={27} height={15} cornerRadius={8} fill={active ? "#8abaff" : "#344762"} listening={false} />
-        <Circle x={active ? 188 : 177} y={32.5} radius={5} fill={active ? "#fff" : "#8c9eb9"} listening={false} />
+          fill={active ? "#285bb1" : "#1b2d47"} />
+        <Label x={16} y={22} width={178} text={element.text} size={14} bold align="center" />
       </Group>;
     }
     default: return <ElementShape element={element} isSelected={false} />;

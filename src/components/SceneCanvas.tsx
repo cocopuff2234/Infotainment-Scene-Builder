@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { DragEvent } from "react";
 import type { Stage as KonvaStage } from "konva/lib/Stage";
-import { Circle, Group, Layer, Line, Rect, Stage, Text, Transformer } from "react-konva";
+import { Circle, Group, Layer, Rect, Stage, Transformer } from "react-konva";
 import type { Group as KonvaGroup } from "konva/lib/Group";
 import type { Transformer as KonvaTransformer } from "konva/lib/shapes/Transformer";
 import type { KonvaEventObject } from "konva/lib/Node";
@@ -9,7 +9,6 @@ import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type RuntimeTheme, type Sc
 import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
 import { SceneWidget } from "./SceneWidgets";
 import { LeafletMapOverlay } from "./LeafletMapOverlay";
-import { useAuth } from "../services/useAuth";
 import { SceneImage } from "./SceneImage";
 
 type SceneCanvasProps = {
@@ -34,14 +33,11 @@ type SceneCanvasProps = {
   preview: boolean;
 };
 
-const font = "Inter, -apple-system, BlinkMacSystemFont, sans-serif";
 const clamp = (value: number, max: number) => Math.max(0, Math.min(Math.max(0, max), value));
 // Keeping the upper bound on the grid prevents a last-pixel jump after a bounded drag.
 const snap = (value: number, max: number) => clamp(Math.round(value / 8) * 8, Math.floor(Math.max(0, max) / 8) * 8);
 
 export function SceneCanvas({ elements, background, selectedId, onSelect, onMove, onUpdate, onDropAsset, scenes, currentSceneId, startSceneId, onSceneChange, onAddScene, onRenameScene, onDeleteScene, onSetStartScene, onNavigate, canAddScene, theme, preview }: SceneCanvasProps) {
-  const { session, loading: authLoading } = useAuth();
-  const greeting = authLoading ? "Good morning" : `Good morning, ${session?.name || "Guest"}`;
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<KonvaStage>(null);
   const elementRefs = useRef(new Map<string, KonvaGroup>());
@@ -50,11 +46,9 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
   const scale = Math.max(0.001, Math.min(1, (availableWidth - 18) / CANVAS_WIDTH));
   const light = theme === "light";
   const palette = light ? {
-    stage: "#f5f2eb", stage2: "#ebe6dc", chrome: "#253247", muted: "#64748b", line: "#cbd5e1",
-    title: "#172033", nav: "#475569", navActive: "#1d4ed8", navFill: "#dbeafe", connected: "#17856f",
+    stage: "#f5f2eb", stage2: "#ebe6dc",
   } : {
-    stage: "#13233b", stage2: "#080f1e", chrome: "#eef4ff", muted: "#8194b2", line: "#25344d",
-    title: "#eef4ff", nav: "#7186a6", navActive: "#9dc3ff", navFill: "#223b61", connected: "#78dbbb",
+    stage: "#13233b", stage2: "#080f1e",
   };
 
   useEffect(() => {
@@ -117,12 +111,9 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
 
   return (
     <section className={`canvas-panel${preview ? " is-preview" : " is-editing"}`} style={{ minWidth: 0 }} aria-label="Infotainment scene canvas">
-      <div className="scene-toolbar" style={{ maxWidth: CANVAS_WIDTH }}>
-        <div>
-          <p className="eyebrow">Live workspace</p>
-          <h2>Infotainment display <span className="scene-mode-badge" style={{ marginLeft: 10, color: preview ? "#78dbbb" : "#85b2ff", fontSize: 10, fontWeight: 500 }}>{preview ? "● PREVIEW" : "● EDIT MODE"}</span></h2>
-        </div>
-        <span className="canvas-size">{CANVAS_WIDTH} × {CANVAS_HEIGHT} <span className="canvas-zoom" style={{ marginLeft: 12 }}>{Math.round(scale * 100)}%</span></span>
+      <div className="scene-toolbar scene-toolbar-compact" style={{ maxWidth: CANVAS_WIDTH }}>
+        <span className="scene-mode-badge">{preview ? "Preview" : "Edit"}</span>
+        <span className="canvas-size">{CANVAS_WIDTH} × {CANVAS_HEIGHT} · {Math.round(scale * 100)}%</span>
       </div>
       <div className="scene-switcher" style={{ maxWidth: CANVAS_WIDTH }}>
         <label>Scene
@@ -156,21 +147,6 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
                   <SceneImage src={background.image} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fit={background.fit ?? "cover"} />
                   <Rect width={CANVAS_WIDTH} height={CANVAS_HEIGHT} fill="#000000" opacity={background.overlay ?? 0.25} listening={false} />
                 </>}
-                <Text x={30} y={25} text="YOUR SPACE. YOUR DRIVE." fontFamily={font} fontSize={8} letterSpacing={1.3} fill={palette.muted} />
-                <Circle x={750} y={30} radius={3} fill={palette.connected} />
-                <Text x={762} y={25} text="CONNECTED" fontFamily={font} fontSize={8} fill={palette.muted} />
-                <Text x={860} y={23} text="22°  ☀" fontFamily={font} fontSize={12} fill={palette.chrome} />
-                <Text x={932} y={23} text="09:41" fontFamily={font} fontSize={13} fontStyle="bold" fill={palette.title} />
-                <Line points={[28, 52, 972, 52]} stroke={palette.line} strokeWidth={1} />
-                <Text x={30} y={76} width={940} height={32} wrap="none" ellipsis text={greeting} fontFamily={font} fontSize={26} fontStyle="bold" fill={palette.title} />
-                <Text x={31} y={112} text="A little more connected. A little further ahead." fontFamily={font} fontSize={11} fill={palette.muted} />
-                <Line points={[28, 572, 972, 572]} stroke={palette.line} />
-                <Rect x={30} y={584} width={76} height={26} cornerRadius={8} fill={palette.navFill} />
-                <Text x={30} y={592} width={76} align="center" text="⌂  Home" fontFamily={font} fontSize={10} fill={palette.navActive} />
-                <Text x={131} y={592} text="◇  Navigate" fontFamily={font} fontSize={10} fill={palette.nav} />
-                <Text x={244} y={592} text="♫  Media" fontFamily={font} fontSize={10} fill={palette.nav} />
-                <Text x={340} y={592} text="✣  Climate" fontFamily={font} fontSize={10} fill={palette.nav} />
-                <Text x={811} y={592} width={160} align="right" text="P  ·  All systems ready" fontFamily={font} fontSize={10} fill={palette.nav} />
               </Group>
 
               {elements.map((element) => {
@@ -230,12 +206,6 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
             <LeafletMapOverlay key={element.id} element={element} scale={scale} />
           ))}
         </div>
-      </div>
-      <div className="canvas-footer" style={{ maxWidth: CANVAS_WIDTH, margin: "14px auto 0", display: "flex", gap: 16, justifyContent: "space-between", flexWrap: "wrap" }}>
-        <p className="canvas-helper hint" style={{ margin: 0 }}>
-          {preview ? "Live preview · Buttons with navigation actions switch scenes without changing the saved design." : "Drag to arrange · Corners scale proportionally · Side handles stretch · Click empty space to deselect"}
-        </p>
-        <span className="canvas-element-count" style={{ fontSize: 10, color: "#64748b" }}>{elements.length} component{elements.length === 1 ? "" : "s"}</span>
       </div>
     </section>
   );
