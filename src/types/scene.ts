@@ -4,6 +4,7 @@ import {
   RUNTIME_ELEMENT_ORDER,
   RUNTIME_SCALE_MODE,
   RUNTIME_TARGET,
+  RUNTIME_THEMES,
   SCENE_TRANSITION_TYPES,
   SCREEN_HEIGHT,
   SCREEN_WIDTH,
@@ -20,6 +21,7 @@ export type ElementType = CockpitType
 export type AssetType = ElementType;
 export type PropValue = string | number | boolean;
 
+export type RuntimeTheme = (typeof RUNTIME_THEMES)[number];
 export type SceneTransitionType = (typeof SCENE_TRANSITION_TYPES)[number];
 export type SceneTransition = { type: SceneTransitionType; durationMs: number };
 export type NavigateAction = {
@@ -34,6 +36,7 @@ export type RuntimeProfile = {
   scaleMode: typeof RUNTIME_SCALE_MODE;
   elementOrder: typeof RUNTIME_ELEMENT_ORDER;
   assetBase: typeof RUNTIME_ASSET_BASE;
+  theme: RuntimeTheme;
 };
 
 export type SceneElement = {

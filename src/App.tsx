@@ -11,6 +11,8 @@ import { initialSceneElements } from "./data/initialScene";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, componentDefaults, isCockpitType } from "./types/scene";
 import { ASSET_BY_TYPE } from "./data/assets";
 import { downloadProject } from "./utils/exportScene";
+import { downloadProjectPackage } from "./utils/packageExport";
+import { analyzeRuntimeCompatibility } from "./utils/runtimeCompatibility";
 import { MAX_ELEMENTS_PER_SCENE, MAX_SCENES, parseProject, removeScene, replaceSceneElements, sceneById, startingScene } from "./utils/projectDocument";
 import { createStarterProject, loadLocalDraft, LocalDraftConflictError, saveLocalDraft } from "./utils/localDraft";
 import type { ElementType, Project, Scene, SceneBackground, SceneElement } from "./types/scene";
@@ -27,6 +29,11 @@ function boundedElement(element: SceneElement, patch: Partial<SceneElement>): Sc
   return next;
 }
 
+function safeRuntimeFileName(name: string) {
+  const cleaned = name.normalize("NFKC").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  return cleaned.slice(0, 120) || "asset.bin";
+}
+
 function nextSceneName(project: Project) {
   let index = project.scenes.length + 1;
   while (project.scenes.some((scene) => scene.name === `Scene ${index}`)) index += 1;
@@ -38,6 +45,7 @@ function App() {
   const [history, setHistory] = useState<History>(() => ({ past: [], present: recovery.project, future: [] }));
   const historyRef = useRef(history);
   const [documentSession, setDocumentSession] = useState(0);
+  const [packageFiles, setPackageFiles] = useState<Record<string, Uint8Array>>({});
   const [activeSceneId, setActiveSceneId] = useState(recovery.project.startSceneId);
   const [selectedId, setSelectedId] = useState("map-1");
   const [previewProject, setPreviewProject] = useState<Project | null>(null);
@@ -58,6 +66,7 @@ function App() {
   const elements = displayedScene.elements;
   const saveStatus = !recovery.writable || localSavingPaused ? "Local recovery paused · export or save cloud" : saveResult.project === project ? saveResult.message : "Saving local draft…";
   const selectedElement = elements.find((element) => element.id === selectedId);
+  const compatibility = analyzeRuntimeCompatibility(project, Object.keys(packageFiles));
 
   const commitProject = useCallback((transform: (current: Project) => Project): boolean => {
     try {
@@ -291,12 +300,49 @@ function App() {
     return commitProject((current) => ({ ...current, scenes: current.scenes.map((scene) => scene.id === designedScene.id ? { ...scene, background } : scene) }));
   }
 
+
+  async function attachRuntimeFile(elementId: string, kind: "mediaPath" | "assetFile", file: File) {
+    if (preview) return;
+    if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
+      setWarning("Runtime files must be between 1 byte and 50 MB for the MVP package exporter.");
+      return;
+    }
+    const folder = kind === "mediaPath" ? "media" : "assets";
+    const path = `${folder}/${safeRuntimeFileName(file.name)}`;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    setPackageFiles((current) => ({ ...current, [path]: bytes }));
+    const scene = sceneById(historyRef.current.present, activeSceneId) ?? startingScene(historyRef.current.present);
+    const element = scene.elements.find((item) => item.id === elementId);
+    if (element) updateElement(elementId, { props: { ...element.props, [kind]: path } });
+  }
+
+  async function importJson(file: File) {
+    if (preview) return;
+    try {
+      const raw = await file.text();
+      const imported = parseProject(JSON.parse(raw));
+      if (!window.confirm(`Import “${imported.name}” and replace the current design? Export or save first if you want to keep it.`)) return;
+      openProject(imported);
+    } catch (error) {
+      setWarning(error instanceof Error ? `Import failed: ${error.message}` : "Import failed. The selected file is not a supported project JSON document.");
+    }
+  }
+
+  function toggleTheme() {
+    if (preview) return;
+    commitProject((current) => ({
+      ...current,
+      runtime: { ...current.runtime, theme: current.runtime.theme === "light" ? "dark" : "light" },
+    }));
+  }
+
   function openProject(document: Project) {
     const validated = parseProject(document);
     const updated = { past: [], present: validated, future: [] };
     historyRef.current = updated;
     setHistory(updated);
     setDocumentSession((value) => value + 1);
+    setPackageFiles({});
     setActiveSceneId(validated.startSceneId);
     setPreviewProject(null);
     setPreviewSceneId(validated.startSceneId);
@@ -304,14 +350,34 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <TopBar projectName={project.name} onRename={(name) => commitProject((current) => ({ ...current, name }))} projectActions={<ProjectMenu document={project} onOpen={openProject} onNew={() => openProject(createStarterProject())} />} saveStatus={saveStatus} preview={preview} onTogglePreview={togglePreview} onExport={() => downloadProject(parseProject(project))} onUndo={undo} onRedo={redo} canUndo={history.past.length > 0 && !preview} canRedo={history.future.length > 0 && !preview} />
+    <main className={`app-shell theme-${displayedProject.runtime.theme}`}>
+      <TopBar
+        projectName={project.name}
+        onRename={(name) => commitProject((current) => ({ ...current, name }))}
+        projectActions={<ProjectMenu document={project} onOpen={openProject} onNew={() => openProject(createStarterProject())} />}
+        saveStatus={saveStatus}
+        preview={preview}
+        onTogglePreview={togglePreview}
+        onExportJson={() => downloadProject(parseProject(project))}
+        onExportPackage={() => {
+          if (!compatibility.compatible) { setWarning(compatibility.errors[0] ?? "This project is not compatible with the Pi runtime."); return; }
+          downloadProjectPackage(project, packageFiles);
+        }}
+        onImportJson={(file) => void importJson(file)}
+        theme={project.runtime.theme}
+        onToggleTheme={toggleTheme}
+        compatibility={compatibility}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={history.past.length > 0 && !preview}
+        canRedo={history.future.length > 0 && !preview}
+      />
       {!preview && designedElements.length >= MAX_ELEMENTS_PER_SCENE && <div className="editor-recovery-warning" role="status">This scene has reached the {MAX_ELEMENTS_PER_SCENE}-component limit. Remove a component before adding or duplicating another.</div>}
       {warning && <div className="editor-recovery-warning" role="status"><span>{warning}</span><button onClick={() => setWarning(null)} aria-label="Dismiss recovery notice">x</button></div>}
       <section className="workspace">
         <AssetPanel key={`${documentSession}-${preview}-${displayedScene.id}`} elements={elements} selectedId={selectedId} onSelect={setSelectedId} onAdd={addElement} onUploadImage={addUploadedImage} sceneSettings={<BackgroundSettings background={displayedScene.background} onChange={changeBackground} disabled={preview} />} preview={preview} onReset={() => { if (window.confirm("Replace this scene with the starter cockpit? You can undo this.")) { commitElements(() => structuredClone(initialSceneElements)); setSelectedId("map-1"); } }} />
-        <SceneCanvas elements={elements} background={displayedScene.background} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => updateElement(id, { x, y })} onUpdate={updateElement} onDropAsset={addElement} scenes={displayedProject.scenes} currentSceneId={displayedScene.id} startSceneId={displayedProject.startSceneId} onSceneChange={switchScene} onAddScene={addScene} onRenameScene={renameScene} onDeleteScene={deleteScene} onSetStartScene={setStartScene} onNavigate={navigatePreview} canAddScene={project.scenes.length < MAX_SCENES} preview={preview} />
-        <PropertiesPanel key={`${documentSession}-${designedScene.id}`} selectedElement={selectedElement} onReplaceImage={replaceImage} onUpdate={updateElement} onDuplicate={duplicateSelected} onDelete={deleteSelected} onReorder={(direction) => {
+        <SceneCanvas elements={elements} background={displayedScene.background} selectedId={selectedId} onSelect={setSelectedId} onMove={(id, x, y) => updateElement(id, { x, y })} onUpdate={updateElement} onDropAsset={addElement} scenes={displayedProject.scenes} currentSceneId={displayedScene.id} startSceneId={displayedProject.startSceneId} onSceneChange={switchScene} onAddScene={addScene} onRenameScene={renameScene} onDeleteScene={deleteScene} onSetStartScene={setStartScene} onNavigate={navigatePreview} canAddScene={project.scenes.length < MAX_SCENES} theme={displayedProject.runtime.theme} preview={preview} />
+        <PropertiesPanel key={`${documentSession}-${designedScene.id}`} selectedElement={selectedElement} onReplaceImage={replaceImage} onAttachRuntimeFile={(id, kind, file) => void attachRuntimeFile(id, kind, file)} onUpdate={updateElement} onDuplicate={duplicateSelected} onDelete={deleteSelected} onReorder={(direction) => {
           commitElements((current) => {
             const index = current.findIndex((element) => element.id === selectedId);
             const nextIndex = index + direction;

@@ -7,6 +7,8 @@ export const RUNTIME_TARGET = "pyside6-qml" as const;
 export const RUNTIME_SCALE_MODE = "fit" as const;
 export const RUNTIME_ELEMENT_ORDER = "array-z-order" as const;
 export const RUNTIME_ASSET_BASE = "." as const;
+export const RUNTIME_THEMES = ["dark", "light"] as const;
+export const DEFAULT_RUNTIME_THEME = "dark" as const;
 export const SCENE_TRANSITION_TYPES = ["instant", "fade", "slide-left", "slide-right"] as const;
 
 export const PROJECT_NAME = "Infotainment Scene";

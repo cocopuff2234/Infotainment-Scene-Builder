@@ -1,10 +1,12 @@
 import { z } from "zod";
 import {
+  DEFAULT_RUNTIME_THEME,
   RUNTIME_ASSET_BASE,
   RUNTIME_CONTRACT_VERSION,
   RUNTIME_ELEMENT_ORDER,
   RUNTIME_SCALE_MODE,
   RUNTIME_TARGET,
+  RUNTIME_THEMES,
   SCENE_TRANSITION_TYPES,
 } from "../config/project";
 import { isAssetType } from "../data/assets";
@@ -31,6 +33,7 @@ const runtimeSchema = z.object({
   scaleMode: z.literal(RUNTIME_SCALE_MODE),
   elementOrder: z.literal(RUNTIME_ELEMENT_ORDER),
   assetBase: z.literal(RUNTIME_ASSET_BASE),
+  theme: z.enum(RUNTIME_THEMES).optional(),
 }).strict();
 const backgroundSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Background color must be a six-digit hex color"),
@@ -162,12 +165,15 @@ export function parseProject(input: unknown): Project {
   if (JSON.stringify(result.data).length > 2_000_000) throw new Error("Project exceeds the 2 MB document limit. Remove an image or use a smaller one before adding more content.");
   return {
     ...result.data,
-    runtime: result.data.runtime ?? {
-      target: RUNTIME_TARGET,
-      contractVersion: RUNTIME_CONTRACT_VERSION,
-      scaleMode: RUNTIME_SCALE_MODE,
-      elementOrder: RUNTIME_ELEMENT_ORDER,
-      assetBase: RUNTIME_ASSET_BASE,
+    runtime: {
+      ...(result.data.runtime ?? {
+        target: RUNTIME_TARGET,
+        contractVersion: RUNTIME_CONTRACT_VERSION,
+        scaleMode: RUNTIME_SCALE_MODE,
+        elementOrder: RUNTIME_ELEMENT_ORDER,
+        assetBase: RUNTIME_ASSET_BASE,
+      }),
+      theme: result.data.runtime?.theme ?? DEFAULT_RUNTIME_THEME,
     },
   };
 }

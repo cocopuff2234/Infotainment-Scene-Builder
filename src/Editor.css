@@ -174,3 +174,63 @@
   font-size: 12px;
   text-align: center;
 }
+
+/* Runtime compatibility and package export. */
+.runtime-status-button { padding: 8px 10px; border-radius: 999px; border: 1px solid #31527a; background: #10223a; color: #9dc3ff; font-size: 10px; font-weight: 650; }
+.runtime-status-button.is-ready { border-color: #2d665b; background: #12302d; color: #9be3cf; }
+.runtime-status-button.has-errors { border-color: #7a4141; background: #341d1d; color: #efb1b1; }
+.runtime-status-dialog { width: min(620px, calc(100vw - 40px)); padding: 0; border: 1px solid #31435f; border-radius: 14px; color: #dce7f6; background: #0e1726; box-shadow: 0 24px 80px #0008; }
+.runtime-status-dialog::backdrop { background: #020617aa; }
+.runtime-status-heading { display: flex; justify-content: space-between; gap: 18px; padding: 22px 22px 18px; border-bottom: 1px solid #25354c; }
+.runtime-status-heading h2 { margin: 0; font-size: 18px; }
+.runtime-status-dialog > section, .runtime-status-summary, .runtime-clean-message { margin: 0; padding: 16px 22px 0; }
+.runtime-status-dialog section h3 { margin: 0 0 8px; color: #a9bdd8; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.runtime-status-dialog ul { margin: 0; padding-left: 20px; color: #91a6c1; font-size: 12px; line-height: 1.7; }
+.runtime-status-summary, .runtime-clean-message { color: #8da1bc; font-size: 12px; }
+.runtime-path-list code { color: #b9d5ff; }
+.runtime-dialog-actions { display: flex; justify-content: flex-end; padding: 20px 22px 22px; }
+
+/* Light mode is both an editor preference and an exported Pi runtime theme. */
+.app-shell.theme-light { color: #1e293b; background: radial-gradient(ellipse at 55% 18%, #dbeafe88, transparent 55%), #f7f5f0; }
+.app-shell.theme-light .topbar { background: #fffdf9e8; border-color: #d8dee7; }
+.app-shell.theme-light .eyebrow { color: #3f6fae; }
+.app-shell.theme-light .editor-project-name { color: #1f2937; }
+.app-shell.theme-light .editor-project-badge { color: #69778a; border-color: #d6dce5; }
+.app-shell.theme-light .panel { background: #f5f2ecdd; border-color: #d7dde6; }
+.app-shell.theme-light .panel-description,
+.app-shell.theme-light .save-status,
+.app-shell.theme-light .canvas-size,
+.app-shell.theme-light .editor-microcopy,
+.app-shell.theme-light .hint,
+.app-shell.theme-light .empty-state { color: #66758a; }
+.app-shell.theme-light .asset-card { color: #253247; background: linear-gradient(125deg, #fffefb, #f0ede7); border-color: #d7dce4; }
+.app-shell.theme-light .asset-card:hover:not(:disabled) { background: #eef4fb; border-color: #7da5d7; }
+.app-shell.theme-light .asset-icon { color: #356da9; background: #e6effa; border-color: #c1d3e8; }
+.app-shell.theme-light .editor-layer { color: #5c6d83; }
+.app-shell.theme-light .editor-layer.selected { color: #234f83; background: #dfeaf6; border-color: #b9cee6; }
+.app-shell.theme-light .editor-library-footer,
+.app-shell.theme-light .scene-switcher { background: #fffdf9; border-color: #d6dce5; }
+.app-shell.theme-light .scene-switcher > label { color: #61718a; }
+.app-shell.theme-light select,
+.app-shell.theme-light input { color: #26364c; background: #fffefa; border-color: #cfd6df; }
+.app-shell.theme-light .secondary-button { color: #334a68; background: #eef2f7; border-color: #c7d1df; }
+.app-shell.theme-light .secondary-button:hover:not(:disabled) { color: #1f3f67; background: #e4edf7; border-color: #99b3d2; }
+.app-shell.theme-light .editor-history { border-color: #d7dce5; }
+.app-shell.theme-light .editor-icon-button { color: #60748e; }
+.app-shell.theme-light .editor-icon-button:hover:not(:disabled) { color: #1f3f67; background: #e8eef5; }
+.app-shell.theme-light .selected-preview,
+.app-shell.theme-light .editor-property-section,
+.app-shell.theme-light .editor-element-actions,
+.app-shell.theme-light .editor-shortcuts,
+.app-shell.theme-light .editor-layers { border-color: #d7dce5; }
+.app-shell.theme-light .editor-property-section h3 { color: #50647f; }
+.app-shell.theme-light .editor-map-note { color: #526d8c; background: #edf3f8; border-color: #cad8e7; }
+.app-shell.theme-light .canvas-wrap { border-color: #c8cdd5; }
+.app-shell.theme-light .runtime-status-button { border-color: #b8cbe0; background: #edf4fb; color: #335f92; }
+.app-shell.theme-light .runtime-status-button.is-ready { border-color: #a9d1c5; background: #e8f5f0; color: #27695c; }
+.app-shell.theme-light .runtime-status-dialog { color: #213047; background: #fffdf9; border-color: #ccd4de; }
+.app-shell.theme-light .runtime-status-heading { border-color: #d9dee5; }
+.app-shell.theme-light .runtime-status-dialog ul,
+.app-shell.theme-light .runtime-status-summary,
+.app-shell.theme-light .runtime-clean-message { color: #5f6f83; }
+.app-shell.theme-light .runtime-path-list code { color: #2f6097; }

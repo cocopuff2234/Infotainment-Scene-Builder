@@ -12,6 +12,7 @@ test("starter project validates without losing component states", () => {
     scaleMode: "fit",
     elementOrder: "array-z-order",
     assetBase: ".",
+    theme: "dark",
   });
   const volume = startingScene(document).elements.find((element) => element.type === "volume")!;
   volume.value = 0;
@@ -26,6 +27,22 @@ test("older schema-v1 documents are normalized to the QML runtime profile", () =
   const { runtime: _runtime, ...legacyDocument } = document;
   const parsed = parseProject(legacyDocument);
   assert.deepEqual(parsed.runtime, document.runtime);
+});
+
+
+
+test("runtime theme is portable and older runtime profiles default to dark", () => {
+  const document = createStarterProject();
+  document.runtime.theme = "light";
+  assert.equal(parseProject(document).runtime.theme, "light");
+
+  const legacy = structuredClone(document) as any;
+  delete legacy.runtime.theme;
+  assert.equal(parseProject(legacy).runtime.theme, "dark");
+
+  const invalid = structuredClone(document) as any;
+  invalid.runtime.theme = "neon";
+  assert.throws(() => parseProject(invalid), /unsupported project/);
 });
 
 test("all registered asset types can be saved and reopened", () => {
