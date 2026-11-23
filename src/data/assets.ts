@@ -50,6 +50,19 @@ export const GROUP_ACCENT: Record<AssetGroup, string> = {
   Custom: "#94a3b8",
 };
 
+export const MAP_DEFAULT_PROPS: Record<string, PropValue> = {
+  source: "gps.location",
+  centerLat: 37.3382,
+  centerLng: -121.8863,
+  zoom: 14,
+  showCurrentLocation: true,
+  followLocation: true,
+  allowPan: true,
+  allowZoom: true,
+  tileProvider: "osm",
+  mapStyle: "standard",
+};
+
 // For data-bound assets, `text` is only a sample shown in the editor.
 // On the head unit it is replaced with the live value named by
 // props.source (e.g. "vehicle.speed").
@@ -114,14 +127,14 @@ export const ASSETS: AssetDefinition[] = [
   },
   {
     type: "hotspot",
-    label: "Hotspot",
-    description: "Invisible action area",
+    label: "Empty",
+    description: "Invisible action overlay",
     group: "Basic UI",
     icon: "⌗",
     preview: "hotspot",
     width: 180,
     height: 64,
-    text: "Hotspot",
+    text: "Empty",
   },
 
   // ---- Controls ----
@@ -202,14 +215,14 @@ export const ASSETS: AssetDefinition[] = [
   {
     type: "map",
     label: "Map",
-    description: "Navigation map",
+    description: "MVP navigation map",
     group: "Navigation",
     icon: "🗺️",
     preview: "card",
     width: 360,
     height: 240,
     text: "Map",
-    props: { source: "gps.location", zoom: 14 },
+    props: MAP_DEFAULT_PROPS,
   },
   {
     type: "trip-info",

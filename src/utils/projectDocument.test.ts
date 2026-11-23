@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ASSETS } from "../data/assets";
+import { ASSETS, ASSET_BY_TYPE } from "../data/assets";
 import { createStarterProject } from "./localDraft";
 import { parseProject, removeScene, replaceSceneElements, replaceStartingElements, startingScene } from "./projectDocument";
 
@@ -20,6 +20,21 @@ test("all registered asset types can be saved and reopened", () => {
     document.scenes[0].elements = [{ id: "component", type: asset.type, x: 0, y: 0, width: asset.width, height: asset.height, text: asset.text, ...(asset.props ? { props: asset.props } : {}) }];
     assert.equal(startingScene(parseProject(document)).elements[0].type, asset.type);
   }
+});
+
+test("map MVP defaults are persisted and Empty keeps the legacy hotspot type", () => {
+  const map = ASSET_BY_TYPE.map;
+  assert.equal(map.props?.tileProvider, "osm");
+  assert.equal(map.props?.centerLat, 37.3382);
+  assert.equal(map.props?.centerLng, -121.8863);
+  assert.equal(map.props?.zoom, 14);
+  assert.equal(ASSET_BY_TYPE.hotspot.label, "Empty");
+  assert.equal(ASSET_BY_TYPE.hotspot.type, "hotspot");
+
+  const document = createStarterProject();
+  const starterMap = document.scenes[0].elements.find((element) => element.type === "map")!;
+  assert.equal(starterMap.props?.tileProvider, "osm");
+  assert.deepEqual(parseProject(document), document);
 });
 
 test("document edits preserve other scenes, metadata, and navigation actions", () => {
@@ -81,4 +96,25 @@ test("invalid IDs, geometry, component types, scalar props, and missing navigati
   const document = createStarterProject();
   assert.throws(() => parseProject({ ...document, scenes: [{ ...document.scenes[0], elements: [{ ...document.scenes[0].elements[0], type: "unknown" }] }] }));
   assert.throws(() => parseProject({ ...document, scenes: [{ ...document.scenes[0], elements: [{ ...document.scenes[0].elements[0], props: { nested: { value: 5 } } }] }] }));
+});
+
+test("invalid map MVP runtime settings are rejected", () => {
+  const corruptions: Array<Record<string, string | number | boolean>> = [
+    { centerLat: 91 },
+    { centerLng: -181 },
+    { zoom: 14.5 },
+    { zoom: 20 },
+    { showCurrentLocation: "yes" },
+    { followLocation: 1 },
+    { allowPan: "true" },
+    { allowZoom: 0 },
+    { tileProvider: "unknown" },
+    { mapStyle: "satellite" },
+  ];
+  for (const props of corruptions) {
+    const document = createStarterProject();
+    const map = document.scenes[0].elements.find((element) => element.type === "map")!;
+    map.props = { ...map.props, ...props };
+    assert.throws(() => parseProject(document));
+  }
 });

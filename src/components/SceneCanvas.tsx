@@ -8,6 +8,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, type AssetType, type Scene, type SceneBackground, type SceneElement } from "../types/scene";
 import { ASSET_DRAG_MIME, isAssetType } from "../data/assets";
 import { SceneWidget } from "./SceneWidgets";
+import { LeafletMapOverlay } from "./LeafletMapOverlay";
 import { useAuth } from "../services/useAuth";
 import { SceneImage } from "./SceneImage";
 
@@ -129,7 +130,7 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
       </div>
 
       <div className="canvas-viewport" ref={containerRef} style={{ width: "100%", maxWidth: CANVAS_WIDTH + 18, margin: "0 auto" }}>
-        <div className="canvas-wrap" onDragOver={handleDragOver} onDrop={handleDrop} style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: "#080f1d", boxShadow: "0 24px 70px #00000035" }}>
+        <div className="canvas-wrap" onDragOver={handleDragOver} onDrop={handleDrop} style={{ width: "100%", boxSizing: "border-box", padding: 8, borderRadius: 18, background: "#080f1d", boxShadow: "0 24px 70px #00000035", position: "relative" }}>
           <Stage ref={stageRef} width={CANVAS_WIDTH * scale} height={CANVAS_HEIGHT * scale}
             scaleX={scale} scaleY={scale}
             onMouseDown={clearSelection} onTouchStart={clearSelection}>
@@ -216,6 +217,9 @@ export function SceneCanvas({ elements, background, selectedId, onSelect, onMove
               />}
             </Layer>
           </Stage>
+          {preview && elements.filter((element) => element.type === "map").map((element) => (
+            <LeafletMapOverlay key={element.id} element={element} scale={scale} />
+          ))}
         </div>
       </div>
       <div className="canvas-footer" style={{ maxWidth: CANVAS_WIDTH, margin: "14px auto 0", display: "flex", gap: 16, justifyContent: "space-between", flexWrap: "wrap" }}>
