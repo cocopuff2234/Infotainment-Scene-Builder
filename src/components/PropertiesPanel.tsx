@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../types/scene";
-import type { SceneElement } from "../types/scene";
+import type { Scene, SceneElement } from "../types/scene";
 import type { UploadedImage } from "../utils/imageUpload";
 import { ImageUpload } from "./ImageUpload";
 
@@ -11,10 +11,12 @@ type PropertiesPanelProps = {
   onDuplicate: () => void;
   onDelete: () => void;
   onReorder: (direction: number) => void;
+  scenes: Scene[];
+  currentSceneId: string;
   preview: boolean;
 };
 
-export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceImage, onDuplicate, onDelete, onReorder, preview }: PropertiesPanelProps) {
+export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceImage, onDuplicate, onDelete, onReorder, scenes, currentSceneId, preview }: PropertiesPanelProps) {
   const [imageUploadEpoch, setImageUploadEpoch] = useState(0);
   function numericField(key: "x" | "y" | "width" | "height", label: string) {
     if (!element) return null;
@@ -27,13 +29,48 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
   return (
     <aside className="panel properties-panel">
       <div className="panel-heading"><div><p className="eyebrow">Make it yours</p><h2>Inspector</h2></div><span className="editor-inspector-icon" aria-hidden="true">⌖</span></div>
-      {preview ? <div className="editor-preview-info"><span aria-hidden="true">▷</span><h3>Take it for a spin.</h3><p>Try the volume and temperature controls, toggle playback, or switch drive mode on the display.</p><p>These are visual simulations, not connected vehicle controls or audio playback.</p><small>Leave preview to continue designing.</small></div> : element ? (
+      {preview ? <div className="editor-preview-info"><span aria-hidden="true">▷</span><h3>Take it for a spin.</h3><p>Try controls and follow any scene-navigation buttons to test the full UI flow.</p><p>These are visual simulations, not connected vehicle controls or audio playback.</p><small>Leave preview to continue designing.</small></div> : element ? (
         <div className="properties-content">
           <div className="selected-preview"><span className="preview-dot" /><div><strong>{element.text || "Untitled component"}</strong><small>{element.type} component</small></div></div>
           <label>Label<input value={element.text} maxLength={60} onChange={(event) => onUpdate(element.id, { text: event.target.value })} /></label>
           <div className="editor-property-section"><h3>Position & size <span>PX</span></h3><div className="property-grid">{numericField("x", "X position")}{numericField("y", "Y position")}{numericField("width", "Width")}{numericField("height", "Height")}</div></div>
           {(element.type === "volume" || element.type === "climate") && <div className="editor-property-section"><h3>{element.type === "volume" ? "Volume level" : "Temperature"}<span>{element.value ?? (element.type === "volume" ? 65 : 21)}{element.type === "volume" ? "%" : "°C"}</span></h3><label className="editor-range-label"><span className="sr-only">{element.type === "volume" ? "Volume" : "Temperature"}</span><input type="range" min={element.type === "volume" ? 0 : 16} max={element.type === "volume" ? 100 : 30} step={element.type === "volume" ? 1 : 0.5} value={element.value ?? (element.type === "volume" ? 65 : 21)} onChange={(event) => onUpdate(element.id, { value: event.target.valueAsNumber })} /></label></div>}
           {(element.type === "button" || element.type === "music") && <label className="editor-checkbox-label"><input type="checkbox" checked={element.active ?? false} onChange={(event) => onUpdate(element.id, { active: event.target.checked })} />{element.type === "music" ? "Playback active" : "Control enabled"}</label>}
+          {element.type === "button" && (
+            <div className="editor-property-section editor-action-section">
+              <h3>On press <span>{element.action ? "NAVIGATE" : "NONE"}</span></h3>
+              <label>Action
+                <select value={element.action ? "navigate" : "none"} onChange={(event) => {
+                  if (event.target.value === "none") {
+                    onUpdate(element.id, { action: undefined });
+                    return;
+                  }
+                  const target = scenes.find((scene) => scene.id !== currentSceneId);
+                  if (target) onUpdate(element.id, { action: { type: "navigate", targetSceneId: target.id, transition: { type: "fade", durationMs: 180 } } });
+                }}>
+                  <option value="none">No action</option>
+                  <option value="navigate" disabled={scenes.length < 2}>Navigate to scene</option>
+                </select>
+              </label>
+              {element.action ? <>
+                <label>Destination scene
+                  <select value={element.action.targetSceneId} onChange={(event) => onUpdate(element.id, { action: { ...element.action!, targetSceneId: event.target.value } })}>
+                    {scenes.map((scene) => <option key={scene.id} value={scene.id} disabled={scene.id === currentSceneId}>{scene.name}{scene.id === currentSceneId ? " (current)" : ""}</option>)}
+                  </select>
+                </label>
+                <label>Transition
+                  <select value={element.action.transition.type === "fade" ? "fade" : "instant"} onChange={(event) => onUpdate(element.id, { action: { ...element.action!, transition: event.target.value === "fade" ? { type: "fade", durationMs: element.action!.transition.durationMs || 180 } : { type: "instant", durationMs: 0 } } })}>
+                    <option value="instant">Instant</option>
+                    <option value="fade">Fade</option>
+                  </select>
+                </label>
+                {element.action.transition.type === "fade" && <label>Fade duration (ms)<input type="number" min={0} max={5000} step={50} value={element.action.transition.durationMs} onChange={(event) => {
+                  if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) onUpdate(element.id, { action: { ...element.action!, transition: { type: "fade", durationMs: Math.max(0, Math.min(5000, event.target.valueAsNumber)) } } });
+                }} /></label>}
+                <p className="editor-action-note">Preview switches scenes immediately. Transition metadata is exported for the device runtime.</p>
+              </> : <p className="editor-action-note">{scenes.length < 2 ? "Add another scene before assigning navigation." : "Choose Navigate to scene to turn this button into a screen link."}</p>}
+            </div>
+          )}
           {element.type === "image" && (
             <div className="editor-property-section image-properties">
               <h3>Image</h3>
