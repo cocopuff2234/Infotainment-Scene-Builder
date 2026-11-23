@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+  RUNTIME_ASSET_BASE,
+  RUNTIME_CONTRACT_VERSION,
+  RUNTIME_ELEMENT_ORDER,
+  RUNTIME_SCALE_MODE,
+  RUNTIME_TARGET,
+  SCENE_TRANSITION_TYPES,
+} from "../config/project";
 import { isAssetType } from "../data/assets";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../types/scene";
 import type { ElementType, Project } from "../types/scene";
@@ -9,7 +17,21 @@ export const MAX_SCENES = 30;
 
 const identifier = z.string().min(1).max(200);
 const scalar = z.union([z.string().max(MAX_IMAGE_SOURCE_LENGTH), z.number(), z.boolean()]);
+const relativeRuntimePath = z.string().max(512).refine((value) => {
+  if (value === "") return true;
+  if (value.includes("\\")) return false;
+  if (value.startsWith("/") || value.startsWith("\\") || /^[a-zA-Z]:[\\/]/.test(value)) return false;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) return false;
+  return !value.replaceAll("\\", "/").split("/").includes("..");
+}, "Runtime asset path must be relative to the imported scene package");
 const imageSource = z.string().max(MAX_IMAGE_SOURCE_LENGTH).refine(isSafeImageSource, "Image source must be an embedded PNG, JPEG, WebP, or a valid HTTPS URL");
+const runtimeSchema = z.object({
+  target: z.literal(RUNTIME_TARGET),
+  contractVersion: z.literal(RUNTIME_CONTRACT_VERSION),
+  scaleMode: z.literal(RUNTIME_SCALE_MODE),
+  elementOrder: z.literal(RUNTIME_ELEMENT_ORDER),
+  assetBase: z.literal(RUNTIME_ASSET_BASE),
+}).strict();
 const backgroundSchema = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Background color must be a six-digit hex color"),
   image: imageSource.optional(),
@@ -30,7 +52,10 @@ const elementSchema = z.object({
   action: z.object({
     type: z.literal("navigate"),
     targetSceneId: identifier,
-    transition: z.object({ type: z.string().min(1).max(100), durationMs: z.number().min(0).max(60_000) }).strict(),
+    transition: z.object({
+      type: z.enum(SCENE_TRANSITION_TYPES),
+      durationMs: z.number().min(0).max(5_000),
+    }).strict(),
   }).strict().optional(),
 }).strict().superRefine((element, context) => {
   for (const [key, value] of Object.entries(element.props ?? {})) {
@@ -61,6 +86,25 @@ const elementSchema = z.object({
     if (props.tileProvider !== undefined && props.tileProvider !== "osm") context.addIssue({ code: "custom", message: "Unsupported map tile provider" });
     if (props.mapStyle !== undefined && props.mapStyle !== "standard") context.addIssue({ code: "custom", message: "Unsupported map style" });
   }
+  if (["music", "music-player", "now-playing"].includes(element.type)) {
+    const mediaPath = element.props?.mediaPath;
+    if (mediaPath !== undefined && (typeof mediaPath !== "string" || !relativeRuntimePath.safeParse(mediaPath).success)) {
+      context.addIssue({ code: "custom", message: "Media path must be a relative scene-package path" });
+    }
+    const autoplay = element.props?.autoplay;
+    const loop = element.props?.loop;
+    if (autoplay !== undefined && typeof autoplay !== "boolean") context.addIssue({ code: "custom", message: "Media autoplay must be true or false" });
+    if (loop !== undefined && typeof loop !== "boolean") context.addIssue({ code: "custom", message: "Media loop must be true or false" });
+  }
+  if (element.type === "custom") {
+    const assetFile = element.props?.assetFile;
+    if (assetFile !== undefined && (typeof assetFile !== "string" || !relativeRuntimePath.safeParse(assetFile).success)) {
+      context.addIssue({ code: "custom", message: "Custom asset file must be a relative scene-package path" });
+    }
+  }
+  if (element.action?.transition.type === "instant" && element.action.transition.durationMs !== 0) {
+    context.addIssue({ code: "custom", message: "Instant transitions must have a zero millisecond duration" });
+  }
   if (element.x + element.width > CANVAS_WIDTH || element.y + element.height > CANVAS_HEIGHT) {
     context.addIssue({ code: "custom", message: "Component extends beyond the supported screen" });
   }
@@ -83,6 +127,9 @@ export const projectSchema = z.object({
   schemaVersion: z.literal(1),
   name: z.string().min(1).max(100).refine((name) => name.trim().length > 0, "Project needs a name"),
   screen: z.object({ width: z.literal(CANVAS_WIDTH), height: z.literal(CANVAS_HEIGHT) }).strict(),
+  // Added during the v1 lifetime. Older v1 documents are normalized to this
+  // runtime profile by parseProject so existing drafts/cloud projects remain valid.
+  runtime: runtimeSchema.optional(),
   startSceneId: identifier,
   scenes: z.array(z.object({
     id: identifier,
@@ -113,7 +160,16 @@ export function parseProject(input: unknown): Project {
     throw new Error(`Invalid or unsupported project: ${result.error.issues[0]?.message ?? "Invalid document"}. This editor supports schema version 1 and a ${CANVAS_WIDTH} × ${CANVAS_HEIGHT} screen.`);
   }
   if (JSON.stringify(result.data).length > 2_000_000) throw new Error("Project exceeds the 2 MB document limit. Remove an image or use a smaller one before adding more content.");
-  return result.data;
+  return {
+    ...result.data,
+    runtime: result.data.runtime ?? {
+      target: RUNTIME_TARGET,
+      contractVersion: RUNTIME_CONTRACT_VERSION,
+      scaleMode: RUNTIME_SCALE_MODE,
+      elementOrder: RUNTIME_ELEMENT_ORDER,
+      assetBase: RUNTIME_ASSET_BASE,
+    },
+  };
 }
 
 export function sceneById(project: Project, sceneId: string) {

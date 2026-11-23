@@ -6,12 +6,26 @@ import { parseProject, removeScene, replaceSceneElements, replaceStartingElement
 
 test("starter project validates without losing component states", () => {
   const document = createStarterProject();
+  assert.deepEqual(document.runtime, {
+    target: "pyside6-qml",
+    contractVersion: 1,
+    scaleMode: "fit",
+    elementOrder: "array-z-order",
+    assetBase: ".",
+  });
   const volume = startingScene(document).elements.find((element) => element.type === "volume")!;
   volume.value = 0;
   volume.active = false;
   volume.props = { source: "media.volume", enabled: false, gain: 0 };
   assert.deepEqual(parseProject(document), document);
   assert.notEqual(parseProject(document), document);
+});
+
+test("older schema-v1 documents are normalized to the QML runtime profile", () => {
+  const document = createStarterProject();
+  const { runtime: _runtime, ...legacyDocument } = document;
+  const parsed = parseProject(legacyDocument);
+  assert.deepEqual(parsed.runtime, document.runtime);
 });
 
 test("all registered asset types can be saved and reopened", () => {
@@ -96,6 +110,65 @@ test("invalid IDs, geometry, component types, scalar props, and missing navigati
   const document = createStarterProject();
   assert.throws(() => parseProject({ ...document, scenes: [{ ...document.scenes[0], elements: [{ ...document.scenes[0].elements[0], type: "unknown" }] }] }));
   assert.throws(() => parseProject({ ...document, scenes: [{ ...document.scenes[0], elements: [{ ...document.scenes[0].elements[0], props: { nested: { value: 5 } } }] }] }));
+});
+
+test("only supported QML scene transitions are accepted", () => {
+  for (const type of ["instant", "fade", "slide-left", "slide-right"] as const) {
+    const document = createStarterProject();
+    document.scenes.push({ id: "second", name: "Second scene", elements: [] });
+    document.scenes[0].elements[0].action = {
+      type: "navigate",
+      targetSceneId: "second",
+      transition: { type, durationMs: type === "instant" ? 0 : 180 },
+    };
+    assert.doesNotThrow(() => parseProject(document));
+  }
+
+  const document = createStarterProject();
+  document.scenes.push({ id: "second", name: "Second scene", elements: [] });
+  assert.throws(() => parseProject({
+    ...document,
+    scenes: [{
+      ...document.scenes[0],
+      elements: [{
+        ...document.scenes[0].elements[0],
+        action: { type: "navigate", targetSceneId: "second", transition: { type: "spin", durationMs: 180 } },
+      }],
+    }, document.scenes[1]],
+  }));
+
+  document.scenes[0].elements[0].action = { type: "navigate", targetSceneId: "second", transition: { type: "instant", durationMs: 100 } };
+  assert.throws(() => parseProject(document), /Instant transitions/);
+});
+
+test("head-unit media paths are portable relative paths", () => {
+  const document = createStarterProject();
+  const music = document.scenes[0].elements.find((element) => element.type === "music")!;
+  music.props = { mediaPath: "media/road-trip.mp3", artist: "Demo artist", autoplay: false, loop: true };
+  assert.doesNotThrow(() => parseProject(document));
+
+  for (const mediaPath of ["/Users/me/song.mp3", "C:\\Music\\song.mp3", "../song.mp3", "media/../../song.mp3", "https://example.com/song.mp3"]) {
+    music.props = { mediaPath };
+    assert.throws(() => parseProject(document), /Media path/);
+  }
+});
+
+test("custom asset files use the same portable runtime path rules", () => {
+  const document = createStarterProject();
+  document.scenes[0].elements = [{
+    id: "custom-1",
+    type: "custom",
+    x: 10,
+    y: 10,
+    width: 200,
+    height: 140,
+    text: "Custom",
+    props: { assetFile: "assets/custom-widget.png" },
+  }];
+  assert.doesNotThrow(() => parseProject(document));
+
+  document.scenes[0].elements[0].props = { assetFile: "../../outside.png" };
+  assert.throws(() => parseProject(document), /Custom asset file/);
 });
 
 test("invalid map MVP runtime settings are rejected", () => {

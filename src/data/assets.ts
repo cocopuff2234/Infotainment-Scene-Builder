@@ -185,6 +185,7 @@ export const ASSETS: AssetDefinition[] = [
     width: 340,
     height: 210,
     text: "Along the way",
+    props: { source: "media.player", mediaPath: "", artist: "", autoplay: false, loop: false },
   },
   {
     type: "music-player",
@@ -196,7 +197,7 @@ export const ASSETS: AssetDefinition[] = [
     width: 320,
     height: 160,
     text: "Song Title",
-    props: { source: "media.player" },
+    props: { source: "media.player", mediaPath: "", artist: "", autoplay: false, loop: false },
   },
   {
     type: "now-playing",
@@ -208,7 +209,7 @@ export const ASSETS: AssetDefinition[] = [
     width: 320,
     height: 100,
     text: "Song Title",
-    props: { source: "media.nowPlaying" },
+    props: { source: "media.nowPlaying", mediaPath: "", artist: "" },
   },
 
   // ---- Navigation ----
