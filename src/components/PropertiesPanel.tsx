@@ -36,7 +36,7 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
           <div className="editor-property-section"><h3>Position & size <span>PX</span></h3><div className="property-grid">{numericField("x", "X position")}{numericField("y", "Y position")}{numericField("width", "Width")}{numericField("height", "Height")}</div></div>
           {(element.type === "volume" || element.type === "climate") && <div className="editor-property-section"><h3>{element.type === "volume" ? "Volume level" : "Temperature"}<span>{element.value ?? (element.type === "volume" ? 65 : 21)}{element.type === "volume" ? "%" : "°C"}</span></h3><label className="editor-range-label"><span className="sr-only">{element.type === "volume" ? "Volume" : "Temperature"}</span><input type="range" min={element.type === "volume" ? 0 : 16} max={element.type === "volume" ? 100 : 30} step={element.type === "volume" ? 1 : 0.5} value={element.value ?? (element.type === "volume" ? 65 : 21)} onChange={(event) => onUpdate(element.id, { value: event.target.valueAsNumber })} /></label></div>}
           {(element.type === "button" || element.type === "music") && <label className="editor-checkbox-label"><input type="checkbox" checked={element.active ?? false} onChange={(event) => onUpdate(element.id, { active: event.target.checked })} />{element.type === "music" ? "Playback active" : "Control enabled"}</label>}
-          {element.type === "button" && (
+          {(element.type === "button" || element.type === "hotspot") && (
             <div className="editor-property-section editor-action-section">
               <h3>On press <span>{element.action ? "NAVIGATE" : "NONE"}</span></h3>
               <label>Action
@@ -68,7 +68,7 @@ export function PropertiesPanel({ selectedElement: element, onUpdate, onReplaceI
                   if (event.target.value !== "" && Number.isFinite(event.target.valueAsNumber)) onUpdate(element.id, { action: { ...element.action!, transition: { type: "fade", durationMs: Math.max(0, Math.min(5000, event.target.valueAsNumber)) } } });
                 }} /></label>}
                 <p className="editor-action-note">Preview switches scenes immediately. Transition metadata is exported for the device runtime.</p>
-              </> : <p className="editor-action-note">{scenes.length < 2 ? "Add another scene before assigning navigation." : "Choose Navigate to scene to turn this button into a screen link."}</p>}
+              </> : <p className="editor-action-note">{scenes.length < 2 ? "Add another scene before assigning navigation." : "Choose Navigate to scene to turn this area into a screen link."}</p>}
             </div>
           )}
           {element.type === "image" && (

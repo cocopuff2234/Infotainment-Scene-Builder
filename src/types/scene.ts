@@ -2,7 +2,7 @@ import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../config/project";
 
 export type CockpitType = "button" | "map" | "volume" | "music" | "climate";
 export type ElementType = CockpitType
-  | "label" | "image" | "icon" | "panel"
+  | "label" | "image" | "icon" | "panel" | "hotspot"
   | "slider" | "toggle"
   | "music-player" | "now-playing"
   | "trip-info" | "speedometer" | "temperature" | "tire-pressure"
