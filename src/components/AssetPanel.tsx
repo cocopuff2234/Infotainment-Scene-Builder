@@ -59,7 +59,7 @@ export function AssetPanel({ elements, selectedId, onSelect, onAdd, onUploadImag
         <p className="editor-microcopy">Front to back · select to inspect</p>
         <div className="editor-layer-list">
           {[...elements].reverse().map((element) => <button key={element.id} type="button" className={`editor-layer${selectedId === element.id ? " selected" : ""}`} onClick={() => onSelect(element.id)} disabled={preview}>
-            <span aria-hidden="true">{ASSET_BY_TYPE[element.type]?.icon ?? "◇"}</span><span>{element.text || ASSET_BY_TYPE[element.type]?.label || element.type}</span><span className="editor-layer-type">{element.type}</span>
+            <span aria-hidden="true">{ASSET_BY_TYPE[element.type]?.icon ?? "◇"}</span><span>{element.text || ASSET_BY_TYPE[element.type]?.label || element.type}</span><span className="editor-layer-type">{ASSET_BY_TYPE[element.type]?.label ?? element.type}</span>
           </button>)}
           {elements.length === 0 && <p className="empty-state">A fresh canvas. Add a component above to get started.</p>}
         </div>

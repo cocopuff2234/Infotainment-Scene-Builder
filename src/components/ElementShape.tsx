@@ -128,6 +128,32 @@ export function ElementShape({ element, isSelected }: ElementShapeProps) {
         />
       );
 
+    case "hotspot":
+      return (
+        <>
+          <Rect
+            width={width}
+            height={height}
+            fill="rgba(96, 165, 250, 0.08)"
+            cornerRadius={8}
+            stroke={outline ?? "#60a5fa"}
+            strokeWidth={isSelected ? 3 : 1.5}
+            dash={[8, 5]}
+          />
+          <Text
+            width={width}
+            height={height}
+            text={text || "Empty"}
+            align="center"
+            verticalAlign="middle"
+            fontSize={12}
+            fontFamily={FONT}
+            fill="#93c5fd"
+            listening={false}
+          />
+        </>
+      );
+
     case "icon":
       return (
         <>

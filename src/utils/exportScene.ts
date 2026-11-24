@@ -1,5 +1,11 @@
 import {
+  DEFAULT_RUNTIME_THEME,
   PROJECT_NAME,
+  RUNTIME_ASSET_BASE,
+  RUNTIME_CONTRACT_VERSION,
+  RUNTIME_ELEMENT_ORDER,
+  RUNTIME_SCALE_MODE,
+  RUNTIME_TARGET,
   SCENE_ID,
   SCENE_NAME,
   SCHEMA_VERSION,
@@ -31,6 +37,14 @@ export function buildProject(elements: SceneElement[]): Project {
     schemaVersion: SCHEMA_VERSION,
     name: PROJECT_NAME,
     screen: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT },
+    runtime: {
+      target: RUNTIME_TARGET,
+      contractVersion: RUNTIME_CONTRACT_VERSION,
+      scaleMode: RUNTIME_SCALE_MODE,
+      elementOrder: RUNTIME_ELEMENT_ORDER,
+      assetBase: RUNTIME_ASSET_BASE,
+      theme: DEFAULT_RUNTIME_THEME,
+    },
     startSceneId: SCENE_ID,
     scenes: [
       {

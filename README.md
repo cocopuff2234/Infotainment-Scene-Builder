@@ -7,10 +7,81 @@ A visual workspace for designing in-car interfaces. Run `npm ci` and `npm run de
 - Click or drag grouped library assets onto the canvas: navigation maps, media players, rotary volume knobs, climate controls, action buttons, basic UI, vehicle data, information cards, phone, and custom placeholders.
 - Select a component on the canvas or in the layers list. Drag to arrange with 8 px snapping; drag corner handles to scale proportionally or side handles to stretch width/height. Resizing stays within the canvas with a minimum size of 80 × 48 px, updates inspector dimensions on release, and creates one undoable change per gesture. Edit labels, positions, dimensions, and values in the inspector.
 - Duplicate, delete, or move components forward/backward in the layer stack. Undo/redo retains up to 50 changes.
-- Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, and enable drive mode. Preview changes are temporary: leaving preview restores the designed defaults without changing undo history or saved documents. These controls are visual simulations: the vector map is offline, and the media player does not play audio.
-- The whole project saves automatically as a local recovery draft when browser storage is available. **Save cloud** explicitly saves to your account; **Open** manages cloud projects. Cloud autosave is not enabled yet. **Export JSON** downloads the same versioned project document (`schemaVersion`, `screen`, `startSceneId`, and `scenes`), including component properties, navigation actions, and designed volume/playback settings. There is no JSON import UI yet.
-- Click the project name to rename it. **New** starts an unlinked local design. Up to 500 components per scene are supported.
+- Use the scene bar above the canvas to add, switch, rename, delete, and choose the project start scene. Each scene keeps its own components and background, while undo/redo continues to operate on the whole project document.
+- Select a **Button** or **Empty** component and use **On press** in the inspector to assign **Navigate to scene**. Empty components are dashed overlays while editing and completely invisible in Preview, so they can turn any visual region into a tappable action area. The underlying version-1 element type remains `hotspot` for compatibility. The action stores the target scene plus transition metadata in the exported JSON. Removing a target scene automatically clears links that would otherwise become invalid.
+- Select a **Map** to configure MVP runtime metadata: center latitude/longitude, zoom, current-location/follow behavior, pan/zoom permissions, and the map provider/style. Edit mode intentionally keeps the lightweight stylized Konva map. **Preview** overlays a real Leaflet/OpenStreetMap map for browser testing; the same exported settings map to Qt Location on the PySide6/QML Raspberry Pi runtime.
+- Enter **Preview** to rotate the volume knob, adjust volume/temperature with ± controls, toggle playback, enable drive mode, follow scene-navigation buttons, and use the live map overlay. Preview changes are temporary: leaving preview restores the designed defaults without changing undo history or saved documents. Scene changes happen in-memory without a page reload; transition and map metadata are exported for the target runtime. Media playback and live GPS input remain simulations/placeholders.
+- The whole project saves automatically as a local recovery draft when browser storage is available. **Save cloud** explicitly saves to your account; **Open** manages cloud projects. Cloud autosave is not enabled yet. **Export package** downloads a `.infotainment.zip` containing `project.json`, a package manifest, and asset/media placement instructions. **JSON** remains available for debugging, and **Import JSON** can reopen a previously exported project. The Pi-ready badge reports portability/network notes before transfer.
+- Click the project name to rename it. **New** starts an unlinked local design. Up to 30 scenes and 500 components per scene are supported.
 - **Restore starter scene** replaces the current layout after confirmation; this action can be undone.
+
+### Scene navigation format
+
+Buttons and invisible **Empty** overlays can link scenes without changing schema version 1. Empty overlays still export with `"type": "hotspot"` so existing version-1 files remain compatible. A navigation button is exported with an optional `action` object like this:
+
+```json
+{
+  "id": "settings-button",
+  "type": "button",
+  "text": "Settings",
+  "action": {
+    "type": "navigate",
+    "targetSceneId": "settings-scene",
+    "transition": { "type": "fade", "durationMs": 180 }
+  }
+}
+```
+
+`targetSceneId` must match a scene in the same project. Supported runtime transitions are **Instant**, **Fade**, **Slide left**, and **Slide right**. The Raspberry Pi/runtime side can load `startSceneId`, render that scene, and replace the active scene when a pressed element has a `navigate` action. The browser preview follows the same target links without reloading the app; the device runtime owns the actual transition animation.
+
+### Raspberry Pi / QML runtime profile
+
+New and re-saved version-1 documents carry an explicit runtime profile:
+
+```json
+{
+  "runtime": {
+    "target": "pyside6-qml",
+    "contractVersion": 1,
+    "scaleMode": "fit",
+    "elementOrder": "array-z-order",
+    "assetBase": ".",
+    "theme": "dark"
+  }
+}
+```
+
+Older version-1 documents without this field are normalized when opened, so existing local/cloud projects remain compatible. `fit` tells the Pi to preserve the fixed 1000 × 620 design aspect ratio, array order is the back-to-front QML z-order, relative assets resolve from the imported scene directory, and `theme` selects dark or warm off-white light mode. The top-bar Light/Dark control changes both the editor presentation and exported runtime preference. See [`docs/PI_RUNTIME_CONTRACT.md`](docs/PI_RUNTIME_CONTRACT.md) for the complete Scene Builder → PySide6/QML handoff.
+
+### Map MVP format
+
+New map components export lightweight runtime configuration in `props` while the editor continues to draw the existing stylized map:
+
+```json
+{
+  "type": "map",
+  "props": {
+    "source": "gps.location",
+    "centerLat": 37.3382,
+    "centerLng": -121.8863,
+    "zoom": 14,
+    "showCurrentLocation": true,
+    "followLocation": true,
+    "allowPan": true,
+    "allowZoom": true,
+    "tileProvider": "osm",
+    "mapStyle": "standard"
+  }
+}
+```
+
+Latitude/longitude and zoom are validated before save/export. Existing version-1 map elements that do not have these optional properties continue to load with editor defaults. Browser Preview lazily loads Leaflet 1.9.4 from jsDelivr and raster tiles from OpenStreetMap, so the real-map preview requires network access; edit mode and project editing do not. On the Pi, `tileProvider: "osm"` is intended to map to Qt Location's OSM plugin rather than Leaflet.
+
+### Head-unit media references
+
+Media components expose a **Head-unit media** section in the inspector. You can attach a local audio file for the current export session, which automatically sets a portable `mediaPath`, or type a path relative to the imported scene directory (for example `media/song.mp3`). The package exporter embeds attached files at that path; unattached references are listed by the Pi-ready report and manifest. Absolute paths, URL schemes, and parent-directory traversal are rejected so a project can be moved from a development computer to USB storage and then to the Pi without rewriting paths. The initial PySide6 runtime can resolve these references into Qt Multimedia.
+
+**Custom Asset** also exposes a relative `assetFile` path (for example `assets/custom-widget.png`) plus an image attachment picker. It uses the same portability checks and package embedding rules, matching the project plan where custom asset files travel with the scene and are resolved by the head unit.
 
 ### Images and scene backgrounds
 
@@ -62,7 +133,7 @@ The app works locally without Supabase. Account services replace the old mock lo
 - Local recovery is one browser-device draft, **not account-private storage**. Signing out keeps the design locally and clears its in-memory cloud linkage. On shared computers, export/save as appropriate and clear browser site data before leaving. Supabase's SDK separately manages the persisted auth session; passwords are never stored by the app.
 - The local editor checks for another tab's changed recovery value before writing and pauses on a conflict. This is a best-effort localStorage guard, not atomic multi-tab collaboration. Export or save cloud if warned; avoid editing the same local draft in multiple tabs.
 - Old `infotainment-scene-v2` element-array drafts are migrated without deleting the old entry. Unreadable project drafts are backed up verbatim before replacement; if that cannot be done safely, local recovery saving is paused instead.
-- Cloud documents use schema version 1, the current 1000 × 620 screen, and runtime validation. Unsupported future versions/resolutions are rejected rather than silently rewritten. Multiple scenes are retained, but this editor currently edits only the starting scene.
+- Cloud documents use schema version 1, the current 1000 × 620 screen, and runtime validation. Unsupported future versions/resolutions are rejected rather than silently rewritten. The editor can author and edit multiple scenes, choose the start scene, and create validated scene-navigation actions.
 - Saving sends the project document (including text, component props, and any embedded URLs) to your Supabase project. Cloud services require network access and are subject to your Supabase usage limits/billing. Embedded uploaded images are included when saving a project to the cloud. No live location or vehicle data is transmitted by this implementation.
 
 ### Verification checklist

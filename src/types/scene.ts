@@ -1,8 +1,18 @@
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../config/project";
+import {
+  RUNTIME_ASSET_BASE,
+  RUNTIME_CONTRACT_VERSION,
+  RUNTIME_ELEMENT_ORDER,
+  RUNTIME_SCALE_MODE,
+  RUNTIME_TARGET,
+  RUNTIME_THEMES,
+  SCENE_TRANSITION_TYPES,
+  SCREEN_HEIGHT,
+  SCREEN_WIDTH,
+} from "../config/project";
 
 export type CockpitType = "button" | "map" | "volume" | "music" | "climate";
 export type ElementType = CockpitType
-  | "label" | "image" | "icon" | "panel"
+  | "label" | "image" | "icon" | "panel" | "hotspot"
   | "slider" | "toggle"
   | "music-player" | "now-playing"
   | "trip-info" | "speedometer" | "temperature" | "tire-pressure"
@@ -11,11 +21,22 @@ export type ElementType = CockpitType
 export type AssetType = ElementType;
 export type PropValue = string | number | boolean;
 
-export type SceneTransition = { type: string; durationMs: number };
+export type RuntimeTheme = (typeof RUNTIME_THEMES)[number];
+export type SceneTransitionType = (typeof SCENE_TRANSITION_TYPES)[number];
+export type SceneTransition = { type: SceneTransitionType; durationMs: number };
 export type NavigateAction = {
   type: "navigate";
   targetSceneId: string;
   transition: SceneTransition;
+};
+
+export type RuntimeProfile = {
+  target: typeof RUNTIME_TARGET;
+  contractVersion: typeof RUNTIME_CONTRACT_VERSION;
+  scaleMode: typeof RUNTIME_SCALE_MODE;
+  elementOrder: typeof RUNTIME_ELEMENT_ORDER;
+  assetBase: typeof RUNTIME_ASSET_BASE;
+  theme: RuntimeTheme;
 };
 
 export type SceneElement = {
@@ -44,6 +65,7 @@ export type Project = {
   schemaVersion: 1;
   name: string;
   screen: { width: number; height: number };
+  runtime: RuntimeProfile;
   startSceneId: string;
   scenes: Scene[];
 };

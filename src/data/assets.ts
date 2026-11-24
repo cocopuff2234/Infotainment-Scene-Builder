@@ -18,6 +18,7 @@ export type PreviewKind =
   | "button"
   | "text"
   | "panel"
+  | "hotspot"
   | "icon"
   | "placeholder"
   | "slider"
@@ -47,6 +48,19 @@ export const GROUP_ACCENT: Record<AssetGroup, string> = {
   Info: "#38bdf8",
   "Comfort & phone": "#fb923c",
   Custom: "#94a3b8",
+};
+
+export const MAP_DEFAULT_PROPS: Record<string, PropValue> = {
+  source: "gps.location",
+  centerLat: 37.3382,
+  centerLng: -121.8863,
+  zoom: 14,
+  showCurrentLocation: true,
+  followLocation: true,
+  allowPan: true,
+  allowZoom: true,
+  tileProvider: "osm",
+  mapStyle: "standard",
 };
 
 // For data-bound assets, `text` is only a sample shown in the editor.
@@ -111,6 +125,17 @@ export const ASSETS: AssetDefinition[] = [
     height: 200,
     text: "",
   },
+  {
+    type: "hotspot",
+    label: "Empty",
+    description: "Invisible action overlay",
+    group: "Basic UI",
+    icon: "⌗",
+    preview: "hotspot",
+    width: 180,
+    height: 64,
+    text: "Empty",
+  },
 
   // ---- Controls ----
   {
@@ -160,6 +185,7 @@ export const ASSETS: AssetDefinition[] = [
     width: 340,
     height: 210,
     text: "Along the way",
+    props: { source: "media.player", mediaPath: "", artist: "", autoplay: false, loop: false },
   },
   {
     type: "music-player",
@@ -171,7 +197,7 @@ export const ASSETS: AssetDefinition[] = [
     width: 320,
     height: 160,
     text: "Song Title",
-    props: { source: "media.player" },
+    props: { source: "media.player", mediaPath: "", artist: "", autoplay: false, loop: false },
   },
   {
     type: "now-playing",
@@ -183,21 +209,21 @@ export const ASSETS: AssetDefinition[] = [
     width: 320,
     height: 100,
     text: "Song Title",
-    props: { source: "media.nowPlaying" },
+    props: { source: "media.nowPlaying", mediaPath: "", artist: "" },
   },
 
   // ---- Navigation ----
   {
     type: "map",
     label: "Map",
-    description: "Navigation map",
+    description: "MVP navigation map",
     group: "Navigation",
     icon: "🗺️",
     preview: "card",
     width: 360,
     height: 240,
     text: "Map",
-    props: { source: "gps.location", zoom: 14 },
+    props: MAP_DEFAULT_PROPS,
   },
   {
     type: "trip-info",
